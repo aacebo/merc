@@ -1,0 +1,13 @@
+[package]
+name = "merc-cli"
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+console = { version = "0.16" }
+rust-bert = { version = "0.23" }

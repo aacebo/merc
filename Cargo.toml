@@ -1,0 +1,13 @@
+[workspace]
+resolver = "3"
+members = ["merc-*"]
+default-members = ["merc-*"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+documentation = "https://www.github.com/aacebo/merc"
+homepage = "https://www.github.com/aacebo/merc"
+repository = "https://www.github.com/aacebo/merc"
