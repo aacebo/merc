@@ -2,8 +2,20 @@
 
 - [Components](#components)
 - [Types](#types)
+    - [Episodic](#episodic-events)
+    - [Semantic](#semantic-facts-concepts)
+    - [Procedural](#procedural-skills-habits)
+    - [Emotional](#emotional)
+    - [Working](#working-temporary)
 - [Datapoints](#datapoints)
+    - [Attention / Salience](#attention--salience-gatekeeper)
+    - [Emotional Valence & Arousal](#emotional-valence--arousal)
+    - [Meaning / Semantic Integration](#meaning--semantic-integration)
+    - [Contextual Binding](#contextual-binding)
+    - [Outcome / Consequence](#outcome--consequence)
+    - [Repetition / Reinforcement](#repetition--reinforcement)
 - [Modulators](#modulators)
+- [Citations](#citations)
 
 A memory is a stored representation of information from experience that the brain (or a system) can retrieve later to influence prediction, decisions, or behavior.
 
@@ -21,11 +33,11 @@ The brain stores information when **salience + meaning + context + consequence e
 
 ## Types
 
-* [Episodic](#episodic-events)
-* [Semantic](#semantic-facts-concepts)
-* [Procedural](#procedural-skills-habits)
-* [Emotional](#emotional)
-* [Working](#working-temporary)
+- [Episodic](#episodic-events)
+- [Semantic](#semantic-facts-concepts)
+- [Procedural](#procedural-skills-habits)
+- [Emotional](#emotional)
+- [Working](#working-temporary)
 
 ### Episodic (Events)
 
@@ -257,6 +269,7 @@ A *modulator* increases or decreases the **priority/durability** of a memory typ
 | Recall attempts                       | Strengthens trace                     |
 | Narrative coherence                   | Improves **episodic retention**       |
 
+## Citations
 
 [^Squire]: **Larry R. Squire** *(Distinguished Professor of Psychiatry, Neurosciences, and Psychology, University of California San Diego)* [Memory and Brain Systems (1969-2009)](https://www.jneurosci.org/content/29/41/12711/)
 
