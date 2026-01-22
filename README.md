@@ -7,5 +7,5 @@ This projects goal is to design a memory management system modeled after the hum
 <pre>
 ├── <a href="./README.md"><b>.</b></a> 👈
 ├── <a href="./docs/1.MEMORY.md">Memory</a>
-└── <a href="./docs/2.ENTITY.md">Entity</a>
+└── <a href="./docs/2.INGESTION.md">Ingestion</a>
 </pre>
