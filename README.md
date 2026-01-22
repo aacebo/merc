@@ -6,6 +6,6 @@ This projects goal is to design a memory management system modeled after the hum
 
 <pre>
 ├── <a style="text-decoration:underline" href="./README.md"><b>.<b></a>
-├── <a href="./docs/1.MEMORY.md">Memory</a>
-└── <a href="./docs/2.ENTITY.md">Entity</a>
+├── <a style="text-decoration:none" href="./docs/1.MEMORY.md">Memory</a>
+└── <a style="text-decoration:none" href="./docs/2.ENTITY.md">Entity</a>
 </pre>
