@@ -7,15 +7,22 @@ use actix_web::{Error, FromRequest, HttpMessage, HttpRequest, web};
 
 use crate::Context;
 
+const REQUEST_ID_HEADER: &str = "X-Request-ID";
+
 #[derive(Clone)]
 pub struct RequestContext {
     ctx: Arc<Context>,
     headers: HeaderMap,
+    request_id: String,
 }
 
 impl RequestContext {
-    pub fn new(ctx: Arc<Context>, headers: HeaderMap) -> Self {
-        Self { ctx, headers }
+    pub fn new(ctx: Arc<Context>, headers: HeaderMap, request_id: String) -> Self {
+        Self {
+            ctx,
+            headers,
+            request_id,
+        }
     }
 
     pub fn context(&self) -> &Context {
@@ -25,6 +32,10 @@ impl RequestContext {
     pub fn headers(&self) -> &HeaderMap {
         &self.headers
     }
+
+    pub fn request_id(&self) -> &str {
+        &self.request_id
+    }
 }
 
 impl FromRequest for RequestContext {
@@ -32,13 +43,13 @@ impl FromRequest for RequestContext {
     type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
-        let request_ctx = req
+        let ctx = req
             .extensions()
             .get::<RequestContext>()
             .cloned()
             .expect("RequestContext not found in request extensions");
 
-        ready(Ok(request_ctx))
+        ready(Ok(ctx))
     }
 }
 
@@ -93,10 +104,15 @@ where
             .into_inner();
 
         let headers = req.headers().clone();
-        let request_ctx = RequestContext::new(ctx, headers);
+        let request_id = headers
+            .get(REQUEST_ID_HEADER)
+            .and_then(|v| v.to_str().ok())
+            .map(String::from)
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
-        req.extensions_mut().insert(request_ctx);
+        let ctx = RequestContext::new(ctx, headers, request_id);
 
+        req.extensions_mut().insert(ctx);
         self.service.call(req)
     }
 }
