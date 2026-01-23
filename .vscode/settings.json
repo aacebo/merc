@@ -1,0 +1,7 @@
+{
+  "rust-analyzer.cargo.features": "all",
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.cargo.autoreload": true,
+  "rust-analyzer.trace.server": "verbose",
+  "terminal.integrated.suggest.enabled": false
+}
