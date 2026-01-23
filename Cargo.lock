@@ -1119,6 +1119,7 @@ dependencies = [
  "actix-web",
  "merc-error",
  "merc-storage",
+ "sqlx",
 ]
 
 [[package]]
