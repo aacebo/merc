@@ -9,5 +9,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+actix-web = { version = "4" }
+
 merc-error = { workspace = true }
 merc-storage = { workspace = true }

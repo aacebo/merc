@@ -12,3 +12,4 @@ repository.workspace = true
 doctest = false
 
 [dependencies]
+sqlx = { version = "0.8", features = ["runtime-tokio"] }
