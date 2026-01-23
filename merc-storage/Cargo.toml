@@ -12,4 +12,7 @@ repository.workspace = true
 doctest = false
 
 [dependencies]
-sqlx = { version = "0.8", features = ["runtime-tokio"] }
+uuid = { version = "1.19", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["default", "derive"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "uuid", "chrono"] }
