@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::entity::{Memory, Sensitivity};
+use crate::entity::Memory;
 
 pub struct MemoryStorage<'a> {
     pool: &'a PgPool,
@@ -25,17 +25,7 @@ impl<'a> MemoryStorage<'a> {
             .await
     }
 
-    pub async fn create(
-        &self,
-        scope_id: uuid::Uuid,
-        score: f32,
-        confidence: f32,
-        importance: f32,
-        sensitivity: Sensitivity,
-        tags: Vec<String>,
-        embedding: Option<Vec<f32>>,
-        expires_at: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Result<Memory, sqlx::Error> {
+    pub async fn create(&self, memory: &Memory) -> Result<Memory, sqlx::Error> {
         sqlx::query_as::<_, Memory>(
             r#"
             INSERT INTO memories (id, scope_id, score, confidence, importance, sensitivity, tags, embedding, expires_at, created_at, updated_at)
@@ -43,30 +33,20 @@ impl<'a> MemoryStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(uuid::Uuid::new_v4())
-        .bind(scope_id)
-        .bind(score)
-        .bind(confidence)
-        .bind(importance)
-        .bind(sensitivity)
-        .bind(tags)
-        .bind(embedding)
-        .bind(expires_at)
+        .bind(memory.id)
+        .bind(memory.scope_id)
+        .bind(memory.score)
+        .bind(memory.confidence)
+        .bind(memory.importance)
+        .bind(&memory.sensitivity)
+        .bind(&memory.tags)
+        .bind(&memory.embedding)
+        .bind(memory.expires_at)
         .fetch_one(self.pool)
         .await
     }
 
-    pub async fn update(
-        &self,
-        id: uuid::Uuid,
-        score: f32,
-        confidence: f32,
-        importance: f32,
-        sensitivity: Sensitivity,
-        tags: Vec<String>,
-        embedding: Option<Vec<f32>>,
-        expires_at: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Result<Option<Memory>, sqlx::Error> {
+    pub async fn update(&self, memory: &Memory) -> Result<Option<Memory>, sqlx::Error> {
         sqlx::query_as::<_, Memory>(
             r#"
             UPDATE memories
@@ -75,14 +55,14 @@ impl<'a> MemoryStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(id)
-        .bind(score)
-        .bind(confidence)
-        .bind(importance)
-        .bind(sensitivity)
-        .bind(tags)
-        .bind(embedding)
-        .bind(expires_at)
+        .bind(memory.id)
+        .bind(memory.score)
+        .bind(memory.confidence)
+        .bind(memory.importance)
+        .bind(&memory.sensitivity)
+        .bind(&memory.tags)
+        .bind(&memory.embedding)
+        .bind(memory.expires_at)
         .fetch_optional(self.pool)
         .await
     }

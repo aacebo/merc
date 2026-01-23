@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::entity::{Source, SourceType};
+use crate::entity::Source;
 
 pub struct SourceStorage<'a> {
     pool: &'a PgPool,
@@ -35,13 +35,7 @@ impl<'a> SourceStorage<'a> {
             .await
     }
 
-    pub async fn create(
-        &self,
-        scope_id: uuid::Uuid,
-        external_id: String,
-        ty: SourceType,
-        uri: Option<String>,
-    ) -> Result<Source, sqlx::Error> {
+    pub async fn create(&self, source: &Source) -> Result<Source, sqlx::Error> {
         sqlx::query_as::<_, Source>(
             r#"
             INSERT INTO sources (id, scope_id, external_id, type, uri, created_at)
@@ -49,11 +43,11 @@ impl<'a> SourceStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(uuid::Uuid::new_v4())
-        .bind(scope_id)
-        .bind(external_id)
-        .bind(ty)
-        .bind(uri)
+        .bind(source.id)
+        .bind(source.scope_id)
+        .bind(&source.external_id)
+        .bind(&source.ty)
+        .bind(&source.uri)
         .fetch_one(self.pool)
         .await
     }

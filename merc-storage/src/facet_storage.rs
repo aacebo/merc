@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::entity::{Facet, FacetType};
+use crate::entity::Facet;
 
 pub struct FacetStorage<'a> {
     pool: &'a PgPool,
@@ -25,13 +25,7 @@ impl<'a> FacetStorage<'a> {
             .await
     }
 
-    pub async fn create(
-        &self,
-        memory_id: uuid::Uuid,
-        ty: FacetType,
-        confidence: f32,
-        data: Vec<u8>,
-    ) -> Result<Facet, sqlx::Error> {
+    pub async fn create(&self, facet: &Facet) -> Result<Facet, sqlx::Error> {
         sqlx::query_as::<_, Facet>(
             r#"
             INSERT INTO facets (id, memory_id, type, confidence, data, created_at, updated_at)
@@ -39,22 +33,16 @@ impl<'a> FacetStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(uuid::Uuid::new_v4())
-        .bind(memory_id)
-        .bind(ty)
-        .bind(confidence)
-        .bind(data)
+        .bind(facet.id)
+        .bind(facet.memory_id)
+        .bind(&facet.ty)
+        .bind(facet.confidence)
+        .bind(&facet.data)
         .fetch_one(self.pool)
         .await
     }
 
-    pub async fn update(
-        &self,
-        id: uuid::Uuid,
-        ty: FacetType,
-        confidence: f32,
-        data: Vec<u8>,
-    ) -> Result<Option<Facet>, sqlx::Error> {
+    pub async fn update(&self, facet: &Facet) -> Result<Option<Facet>, sqlx::Error> {
         sqlx::query_as::<_, Facet>(
             r#"
             UPDATE facets
@@ -63,10 +51,10 @@ impl<'a> FacetStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(id)
-        .bind(ty)
-        .bind(confidence)
-        .bind(data)
+        .bind(facet.id)
+        .bind(&facet.ty)
+        .bind(facet.confidence)
+        .bind(&facet.data)
         .fetch_optional(self.pool)
         .await
     }

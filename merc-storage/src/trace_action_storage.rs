@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::entity::{Action, Target, TraceAction};
+use crate::entity::{Target, TraceAction};
 
 pub struct TraceActionStorage<'a> {
     pool: &'a PgPool,
@@ -35,13 +35,7 @@ impl<'a> TraceActionStorage<'a> {
         .await
     }
 
-    pub async fn create(
-        &self,
-        trace_id: uuid::Uuid,
-        target_id: uuid::Uuid,
-        target: Target,
-        action: Action,
-    ) -> Result<TraceAction, sqlx::Error> {
+    pub async fn create(&self, trace_action: &TraceAction) -> Result<TraceAction, sqlx::Error> {
         sqlx::query_as::<_, TraceAction>(
             r#"
             INSERT INTO trace_actions (trace_id, target_id, target, action, created_at)
@@ -49,10 +43,10 @@ impl<'a> TraceActionStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(trace_id)
-        .bind(target_id)
-        .bind(target)
-        .bind(action)
+        .bind(trace_action.trace_id)
+        .bind(trace_action.target_id)
+        .bind(&trace_action.target)
+        .bind(&trace_action.action)
         .fetch_one(self.pool)
         .await
     }

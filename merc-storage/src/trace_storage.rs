@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::entity::{Status, Trace};
+use crate::entity::Trace;
 
 pub struct TraceStorage<'a> {
     pool: &'a PgPool,
@@ -32,13 +32,7 @@ impl<'a> TraceStorage<'a> {
             .await
     }
 
-    pub async fn create(
-        &self,
-        parent_id: Option<uuid::Uuid>,
-        request_id: Option<String>,
-        status: Status,
-        status_message: Option<String>,
-    ) -> Result<Trace, sqlx::Error> {
+    pub async fn create(&self, trace: &Trace) -> Result<Trace, sqlx::Error> {
         sqlx::query_as::<_, Trace>(
             r#"
             INSERT INTO traces (id, parent_id, request_id, status, status_message, started_at)
@@ -46,22 +40,16 @@ impl<'a> TraceStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(uuid::Uuid::new_v4())
-        .bind(parent_id)
-        .bind(request_id)
-        .bind(status)
-        .bind(status_message)
+        .bind(trace.id)
+        .bind(trace.parent_id)
+        .bind(&trace.request_id)
+        .bind(&trace.status)
+        .bind(&trace.status_message)
         .fetch_one(self.pool)
         .await
     }
 
-    pub async fn update(
-        &self,
-        id: uuid::Uuid,
-        status: Status,
-        status_message: Option<String>,
-        ended_at: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Result<Option<Trace>, sqlx::Error> {
+    pub async fn update(&self, trace: &Trace) -> Result<Option<Trace>, sqlx::Error> {
         sqlx::query_as::<_, Trace>(
             r#"
             UPDATE traces
@@ -70,10 +58,10 @@ impl<'a> TraceStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(id)
-        .bind(status)
-        .bind(status_message)
-        .bind(ended_at)
+        .bind(trace.id)
+        .bind(&trace.status)
+        .bind(&trace.status_message)
+        .bind(trace.ended_at)
         .fetch_optional(self.pool)
         .await
     }

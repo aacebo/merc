@@ -4,13 +4,23 @@ use serde::Deserialize;
 use crate::Context;
 
 #[derive(Deserialize)]
-pub struct IngestPayload {
+struct IngestPath {
+    pub scope_id: String,
+}
+
+#[derive(Deserialize)]
+struct IngestChatPayload {
     pub text: String,
 }
 
-#[post("/ingest")]
-pub async fn ingest(ctx: web::Data<Context>, payload: web::Json<IngestPayload>) -> HttpResponse {
+#[post("/chats/{scope_id}/ingest")]
+pub async fn ingest(
+    ctx: web::Data<Context>,
+    path: web::Path<IngestPath>,
+    payload: web::Json<IngestChatPayload>,
+) -> HttpResponse {
     let _ctx = ctx.into_inner();
+    let _scope_id = path.into_inner().scope_id;
     let _text = payload.into_inner().text;
 
     // TODO: implement ingest logic

@@ -2,6 +2,7 @@ name: merc
 
 services:
   api:
+    container_name: merc-api
     build:
       context: .
       dockerfile: merc-api/Dockerfile
@@ -13,6 +14,7 @@ services:
       - postgres
 
   postgres:
+    container_name: postgres
     image: pgvector/pgvector:pg17
     ports:
       - 5432:5432

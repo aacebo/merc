@@ -45,16 +45,7 @@ impl<'a> MemorySourceStorage<'a> {
             .await
     }
 
-    pub async fn create(
-        &self,
-        memory_id: uuid::Uuid,
-        source_id: uuid::Uuid,
-        confidence: f32,
-        text: Option<String>,
-        hash: String,
-        start_offset: i32,
-        end_offset: i32,
-    ) -> Result<MemorySource, sqlx::Error> {
+    pub async fn create(&self, memory_source: &MemorySource) -> Result<MemorySource, sqlx::Error> {
         sqlx::query_as::<_, MemorySource>(
             r#"
             INSERT INTO memory_sources (memory_id, source_id, confidence, text, hash, start_offset, end_offset)
@@ -62,26 +53,20 @@ impl<'a> MemorySourceStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(memory_id)
-        .bind(source_id)
-        .bind(confidence)
-        .bind(text)
-        .bind(hash)
-        .bind(start_offset)
-        .bind(end_offset)
+        .bind(memory_source.memory_id)
+        .bind(memory_source.source_id)
+        .bind(memory_source.confidence)
+        .bind(&memory_source.text)
+        .bind(&memory_source.hash)
+        .bind(memory_source.start_offset)
+        .bind(memory_source.end_offset)
         .fetch_one(self.pool)
         .await
     }
 
     pub async fn update(
         &self,
-        memory_id: uuid::Uuid,
-        source_id: uuid::Uuid,
-        confidence: f32,
-        text: Option<String>,
-        hash: String,
-        start_offset: i32,
-        end_offset: i32,
+        memory_source: &MemorySource,
     ) -> Result<Option<MemorySource>, sqlx::Error> {
         sqlx::query_as::<_, MemorySource>(
             r#"
@@ -91,13 +76,13 @@ impl<'a> MemorySourceStorage<'a> {
             RETURNING *
             "#,
         )
-        .bind(memory_id)
-        .bind(source_id)
-        .bind(confidence)
-        .bind(text)
-        .bind(hash)
-        .bind(start_offset)
-        .bind(end_offset)
+        .bind(memory_source.memory_id)
+        .bind(memory_source.source_id)
+        .bind(memory_source.confidence)
+        .bind(&memory_source.text)
+        .bind(&memory_source.hash)
+        .bind(memory_source.start_offset)
+        .bind(memory_source.end_offset)
         .fetch_optional(self.pool)
         .await
     }
