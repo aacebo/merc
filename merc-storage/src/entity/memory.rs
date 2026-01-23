@@ -1,3 +1,4 @@
+use crate::build::MemoryBuilder;
 use crate::entity::Sensitivity;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
@@ -13,4 +14,10 @@ pub struct Memory {
     pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl Memory {
+    pub fn builder(scope_id: uuid::Uuid) -> MemoryBuilder {
+        MemoryBuilder::new(scope_id)
+    }
 }

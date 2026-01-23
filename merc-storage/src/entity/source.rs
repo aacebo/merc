@@ -1,3 +1,5 @@
+use crate::build::SourceBuilder;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct Source {
     pub id: uuid::Uuid,
@@ -7,6 +9,16 @@ pub struct Source {
     pub ty: SourceType,
     pub uri: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl Source {
+    pub fn builder(
+        scope_id: uuid::Uuid,
+        external_id: impl Into<String>,
+        ty: SourceType,
+    ) -> SourceBuilder {
+        SourceBuilder::new(scope_id, external_id, ty)
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::Type)]

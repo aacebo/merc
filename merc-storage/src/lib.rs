@@ -1,5 +1,6 @@
 use sqlx::PgPool;
 
+pub mod build;
 pub mod entity;
 
 mod facet_storage;
