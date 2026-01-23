@@ -22,3 +22,23 @@ services:
       POSTGRES_DB: main
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+
+  worker:
+    container_name: merc-worker
+    build:
+      context: .
+      dockerfile: merc-worker/Dockerfile
+    environment:
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - rabbitmq
