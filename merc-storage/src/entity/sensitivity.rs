@@ -1,5 +1,5 @@
-#[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::Type)]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 pub enum Sensitivity {
     Low,
     Personal,

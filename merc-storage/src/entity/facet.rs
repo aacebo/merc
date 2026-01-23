@@ -10,8 +10,8 @@ pub struct Facet {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::Type)]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 pub enum FacetType {
     /// Stable likes/dislikes, “always/usually” choices
     Preference,

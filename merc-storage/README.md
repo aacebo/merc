@@ -64,7 +64,7 @@ erDiagram
     TraceAction {
         uuid        trace_id    FK  "NOT NULL"
         uuid        target_id       "NOT NULL"
-        Target      target_type     "NOT NULL, memory|facet|source"
+        Target      target          "NOT NULL, memory|facet|source"
         Action      action          "NOT NULL, create|update|delete|read|cited"
         timestamptz created_at      "NOT NULL"
     }
