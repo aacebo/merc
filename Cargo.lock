@@ -1640,6 +1640,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "merc-error"
+version = "0.0.1"
+
+[[package]]
+name = "merc-events"
+version = "0.0.1"
+dependencies = [
+ "chrono",
+ "futures-lite 2.6.1",
+ "lapin",
+ "merc-error",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "merc-storage"
 version = "0.0.1"
 dependencies = [
@@ -1653,8 +1670,8 @@ dependencies = [
 name = "merc-worker"
 version = "0.0.1"
 dependencies = [
- "futures-lite 2.6.1",
- "lapin",
+ "merc-error",
+ "merc-events",
  "tokio",
 ]
 

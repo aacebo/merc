@@ -1,5 +1,5 @@
 [package]
-name = "merc-storage"
+name = "merc-error"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,7 +12,3 @@ repository.workspace = true
 doctest = false
 
 [dependencies]
-uuid = { workspace = true }
-chrono = { workspace = true }
-serde = { workspace = true }
-sqlx = { workspace = true }

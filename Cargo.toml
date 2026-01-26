@@ -13,4 +13,12 @@ homepage = "https://www.github.com/aacebo/merc"
 repository = "https://www.github.com/aacebo/merc"
 
 [workspace.dependencies]
+merc-error = { path = "./merc-error", version = "0.0.1" }
+merc-events = { path = "./merc-events", version = "0.0.1" }
 merc-storage = { path = "./merc-storage", version = "0.0.1" }
+
+uuid = { version = "1.19", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["default", "derive"] }
+serde_json = { version = "1" }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "uuid", "chrono"] }

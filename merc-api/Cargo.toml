@@ -10,9 +10,8 @@ repository.workspace = true
 
 [dependencies]
 actix-web = { version = "4" }
-chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1", features = ["default", "derive"] }
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "migrate"] }
-uuid = { version = "1", features = ["v4"] }
-
+chrono = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true }
+uuid = { workspace = true }
 merc-storage = { workspace = true }
