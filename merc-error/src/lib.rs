@@ -24,6 +24,10 @@ impl Error {
         }
     }
 
+    pub fn builder() -> ErrorBuilder {
+        ErrorBuilder::new()
+    }
+
     pub fn message(&self) -> Option<&str> {
         match &self.message {
             None => None,

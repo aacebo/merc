@@ -1,45 +1,35 @@
-use std::collections::HashMap;
-
-use lapin::{
-    Channel, Connection, ConnectionProperties, Queue, options::QueueDeclareOptions,
-    types::FieldTable,
-};
+use lapin::{options, protocol};
 use merc_error::Result;
 
+use crate::{ChannelConnection, Event};
+
 pub struct Producer {
-    conn: Connection,
-    channel: Channel,
-    queues: HashMap<String, Queue>,
+    conn: ChannelConnection,
 }
 
 impl Producer {
-    pub async fn connect(uri: &str) -> Result<Self> {
-        let conn = Connection::connect(uri, ConnectionProperties::default()).await?;
-        let channel = conn.create_channel().await?;
-        let _ = channel
-            .queue_declare(
-                "memory.create",
-                QueueDeclareOptions::default(),
-                FieldTable::default(),
-            )
-            .await?;
-
-        Ok(Self {
-            conn,
-            channel,
-            queues: HashMap::new(),
-        })
+    pub fn connect(conn: ChannelConnection) -> Self {
+        Self { conn }
     }
 
-    pub fn conn(&self) -> &Connection {
+    pub fn conn(&self) -> &ChannelConnection {
         &self.conn
     }
 
-    pub fn channel(&self) -> &Channel {
-        &self.channel
-    }
+    pub async fn enqueue<TBody: serde::Serialize>(&self, event: Event<TBody>) -> Result<()> {
+        let payload = serde_json::to_vec(&event)?;
+        let _ = self
+            .conn
+            .channel()
+            .basic_publish(
+                event.key.exchange(),
+                &event.key.to_string(),
+                options::BasicPublishOptions::default(),
+                &payload,
+                protocol::basic::AMQPProperties::default(),
+            )
+            .await?;
 
-    pub fn queue(&self, key: &str) -> Option<&Queue> {
-        self.queues.get(key)
+        Ok(())
     }
 }

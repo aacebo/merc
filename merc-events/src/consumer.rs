@@ -15,7 +15,7 @@ impl Consumer {
             .channel()
             .basic_consume(
                 queue,
-                "merc-worker",
+                "merc[worker]",
                 BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
@@ -28,7 +28,7 @@ impl Consumer {
         &self.conn
     }
 
-    pub async fn next<T: for<'a> serde::Deserialize<'a>>(&mut self) -> Option<Result<Event<T>>> {
+    pub async fn dequeue<T: for<'a> serde::Deserialize<'a>>(&mut self) -> Option<Result<Event<T>>> {
         let delivery = match self.consumer.next().await? {
             Err(err) => return Some(Err(err.into())),
             Ok(v) => v,
