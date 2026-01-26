@@ -15,6 +15,7 @@ repository = "https://www.github.com/aacebo/merc"
 [workspace.dependencies]
 merc-error = { path = "./merc-error", version = "0.0.1" }
 merc-events = { path = "./merc-events", version = "0.0.1" }
+merc-engine = { path = "./merc-engine", version = "0.0.1" }
 merc-storage = { path = "./merc-storage", version = "0.0.1" }
 
 uuid = { version = "1.19", features = ["v4", "serde"] }

@@ -1,0 +1,18 @@
+[package]
+name = "merc-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+rust-bert = { version = "0.23" }
+console = { version = "0.16", features = ["std"] }
+chrono = { workspace = true }
+merc-error = { workspace = true }
