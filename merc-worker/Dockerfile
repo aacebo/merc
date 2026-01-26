@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/li
 
 # Copy workspace files
 COPY Cargo.toml Cargo.lock ./
+COPY merc-error ./merc-error
+COPY merc-events ./merc-events
 COPY merc-storage ./merc-storage
 COPY merc-worker ./merc-worker
 
