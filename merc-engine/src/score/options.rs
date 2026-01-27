@@ -5,16 +5,19 @@ use crate::score::ScoreLayer;
 
 #[derive(Default)]
 pub struct ScoreOptions {
-    threshold: f32,
+    threshold: f64,
     model: zero_shot_classification::ZeroShotClassificationConfig,
 }
 
 impl ScoreOptions {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            threshold: 0.7,
+            ..Default::default()
+        }
     }
 
-    pub fn with_threshold(mut self, value: f32) -> Self {
+    pub fn with_threshold(mut self, value: f64) -> Self {
         self.threshold = value;
         self
     }

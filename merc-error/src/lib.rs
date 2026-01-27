@@ -1,6 +1,8 @@
 mod builder;
+mod code;
 
 pub use builder::*;
+pub use code::*;
 
 use std::{backtrace::Backtrace, collections::BTreeMap};
 
@@ -8,6 +10,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub struct Error {
+    code: ErrorCode,
     message: Option<String>,
     fields: BTreeMap<String, String>,
     backtrace: Option<Backtrace>,
@@ -17,6 +20,7 @@ pub struct Error {
 impl Error {
     pub fn new() -> Self {
         Self {
+            code: ErrorCode::default(),
             message: None,
             fields: BTreeMap::new(),
             backtrace: None,
@@ -26,6 +30,10 @@ impl Error {
 
     pub fn builder() -> ErrorBuilder {
         ErrorBuilder::new()
+    }
+
+    pub fn code(&self) -> &ErrorCode {
+        &self.code
     }
 
     pub fn message(&self) -> Option<&str> {
@@ -60,6 +68,7 @@ impl Error {
 impl<T: std::error::Error + 'static> From<T> for Error {
     fn from(value: T) -> Self {
         Self {
+            code: ErrorCode::default(),
             message: None,
             fields: BTreeMap::new(),
             backtrace: None,
@@ -70,16 +79,18 @@ impl<T: std::error::Error + 'static> From<T> for Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "[ERROR::{}]", &self.code)?;
+
         if let Some(backtrace) = &self.backtrace {
-            write!(f, "backtrace: {}", backtrace)?;
+            writeln!(f, "\tbacktrace: {}", backtrace)?;
         }
 
         if let Some(error) = &self.inner {
-            write!(f, "inner error: {}", error)?;
+            writeln!(f, "\tinner error: {}", error)?;
         }
 
         if let Some(message) = &self.message {
-            write!(f, "message: {}", message)?;
+            writeln!(f, "\tmessage: {}", message)?;
         }
 
         Ok(())
