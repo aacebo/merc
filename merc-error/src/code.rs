@@ -1,22 +1,22 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ErrorCode {
-    Ignore,
     Unknown,
+    Cancel,
     NotFound,
     BadArguments,
 }
 
 impl ErrorCode {
-    pub fn is_ignore(&self) -> bool {
+    pub fn is_unknown(&self) -> bool {
         match self {
-            Self::Ignore => true,
+            Self::Unknown => true,
             _ => false,
         }
     }
 
-    pub fn is_unknown(&self) -> bool {
+    pub fn is_cancel(&self) -> bool {
         match self {
-            Self::Unknown => true,
+            Self::Cancel => true,
             _ => false,
         }
     }
@@ -45,7 +45,7 @@ impl Default for ErrorCode {
 impl std::fmt::Display for ErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Ignore => write!(f, "ignore"),
+            Self::Cancel => write!(f, "cancel"),
             Self::Unknown => write!(f, "unknown"),
             Self::NotFound => write!(f, "not-found"),
             Self::BadArguments => write!(f, "bad-arguments"),

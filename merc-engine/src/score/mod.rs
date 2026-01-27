@@ -35,7 +35,7 @@ impl Layer for ScoreLayer {
 
         if self.threshold > result.score {
             return Err(Error::builder()
-                .code(ErrorCode::Ignore)
+                .code(ErrorCode::Cancel)
                 .message(&format!(
                     "score {} is less than minimum threshold {}",
                     result.score, self.threshold
@@ -51,11 +51,11 @@ impl Layer for ScoreLayer {
         }
 
         if elapse.num_minutes() > 0 {
-            elapse_message = format!("{}min", elapse.num_minutes());
+            elapse_message = format!("{}m", elapse.num_minutes());
         }
 
         if elapse.num_hours() > 0 {
-            elapse_message = format!("{}hrs", elapse.num_hours());
+            elapse_message = format!("{}h", elapse.num_hours());
         }
 
         result.meta.set("elapse", elapse_message);
