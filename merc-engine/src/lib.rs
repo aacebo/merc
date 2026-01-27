@@ -4,7 +4,6 @@ mod context;
 mod layer;
 mod options;
 mod output;
-mod task;
 
 pub use context::*;
 pub use layer::*;

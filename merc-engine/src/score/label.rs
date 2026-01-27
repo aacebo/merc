@@ -1,8 +1,8 @@
 pub enum Label {
-    Sentiment(Sentiment),
-    Emotion(Emotion),
-    Outcome(Outcome),
-    Contextual(Contextual),
+    Sentiment(SentimentLabel),
+    Emotion(EmotionLabel),
+    Outcome(OutcomeLabel),
+    Context(ContextLabel),
 }
 
 impl std::fmt::Display for Label {
@@ -11,17 +11,17 @@ impl std::fmt::Display for Label {
             Self::Sentiment(v) => write!(f, "{}", v),
             Self::Emotion(v) => write!(f, "{}", v),
             Self::Outcome(v) => write!(f, "{}", v),
-            Self::Contextual(v) => write!(f, "{}", v),
+            Self::Context(v) => write!(f, "{}", v),
         }
     }
 }
 
-pub enum Sentiment {
+pub enum SentimentLabel {
     Negative,
     Positive,
 }
 
-impl std::fmt::Display for Sentiment {
+impl std::fmt::Display for SentimentLabel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Positive => write!(f, "positive"),
@@ -30,7 +30,7 @@ impl std::fmt::Display for Sentiment {
     }
 }
 
-pub enum Emotion {
+pub enum EmotionLabel {
     Joy,
     Fear,
     Shame,
@@ -40,7 +40,7 @@ pub enum Emotion {
     Sad,
 }
 
-impl std::fmt::Display for Emotion {
+impl std::fmt::Display for EmotionLabel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Joy => write!(f, "joy"),
@@ -54,7 +54,7 @@ impl std::fmt::Display for Emotion {
     }
 }
 
-pub enum Outcome {
+pub enum OutcomeLabel {
     Success,
     Failure,
     Reward,
@@ -63,7 +63,7 @@ pub enum Outcome {
     Response,
 }
 
-impl std::fmt::Display for Outcome {
+impl std::fmt::Display for OutcomeLabel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Success => write!(f, "success"),
@@ -76,7 +76,7 @@ impl std::fmt::Display for Outcome {
     }
 }
 
-pub enum Contextual {
+pub enum ContextLabel {
     Fact,
     Time,
     Place,
@@ -84,7 +84,7 @@ pub enum Contextual {
     Social,
 }
 
-impl std::fmt::Display for Contextual {
+impl std::fmt::Display for ContextLabel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Fact => write!(f, "fact"),
