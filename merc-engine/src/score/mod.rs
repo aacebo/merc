@@ -9,6 +9,8 @@ use merc_error::{Error, ErrorCode};
 pub use options::*;
 pub use result::*;
 
+use std::str::FromStr;
+
 use rust_bert::pipelines::zero_shot_classification;
 
 use crate::{Context, Layer, LayerResult};
@@ -24,7 +26,11 @@ impl Layer for ScoreLayer {
         let labels = self.model.predict_multilabel(
             vec![ctx.text.as_str()],
             &Label::all().map(|l| l.as_str()),
-            None,
+            Some(Box::new(|label: &str| {
+                Label::from_str(label)
+                    .map(|l| l.hypothesis().to_string())
+                    .unwrap_or_else(|_| format!("This example is {}.", label))
+            })),
             128,
         )?;
 
@@ -63,17 +69,18 @@ impl Layer for ScoreLayer {
 
 #[cfg(test)]
 mod tests {
-    use merc_error::Result;
+    use merc_error::{ErrorCode, Result};
 
     use crate::{Context, Layer, score::ScoreOptions};
 
     #[test]
-    fn should_score() -> Result<()> {
+    fn should_cancel() -> Result<()> {
         let layer = ScoreOptions::new().build()?;
-        let mut context = Context::new("oh my god I forgot to study for exams...");
-        let res = layer.invoke(&mut context)?;
+        let mut context = Context::new("hi how are you?");
+        let res = layer.invoke(&mut context);
 
-        println!("{:#?}", &res);
+        assert!(res.is_err());
+        assert_eq!(*res.unwrap_err().code(), ErrorCode::Cancel);
         Ok(())
     }
 }

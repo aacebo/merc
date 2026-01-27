@@ -95,6 +95,15 @@ impl Label {
             Self::Context(v) => v.as_str(),
         }
     }
+
+    pub fn hypothesis(&self) -> &'static str {
+        match self {
+            Self::Sentiment(v) => v.hypothesis(),
+            Self::Emotion(v) => v.hypothesis(),
+            Self::Outcome(v) => v.hypothesis(),
+            Self::Context(v) => v.hypothesis(),
+        }
+    }
 }
 
 impl FromStr for Label {
@@ -145,6 +154,13 @@ impl SentimentLabel {
         match self {
             Self::Positive => "positive",
             Self::Negative => "negative",
+        }
+    }
+
+    pub fn hypothesis(&self) -> &'static str {
+        match self {
+            Self::Positive => "This text expresses a positive sentiment.",
+            Self::Negative => "This text expresses a negative sentiment.",
         }
     }
 }
@@ -199,6 +215,18 @@ impl EmotionLabel {
             Self::Stress => "stress",
             Self::Anger => "anger",
             Self::Sad => "sad",
+        }
+    }
+
+    pub fn hypothesis(&self) -> &'static str {
+        match self {
+            Self::Joy => "This text expresses joy or happiness.",
+            Self::Fear => "This text expresses fear or anxiety.",
+            Self::Shame => "This text expresses shame or embarrassment.",
+            Self::Pride => "This text expresses pride or accomplishment.",
+            Self::Stress => "This text expresses stress or pressure.",
+            Self::Anger => "This text expresses anger or frustration.",
+            Self::Sad => "This text expresses sadness or grief.",
         }
     }
 }
@@ -263,6 +291,17 @@ impl OutcomeLabel {
             Self::Response => "response",
         }
     }
+
+    pub fn hypothesis(&self) -> &'static str {
+        match self {
+            Self::Success => "This text describes achieving a goal or success.",
+            Self::Failure => "This text describes a failure or setback.",
+            Self::Reward => "This text describes receiving a reward or benefit.",
+            Self::Punishment => "This text describes a punishment or consequence.",
+            Self::Decision => "This text describes making a decision or choice.",
+            Self::Response => "This text describes a response to a prior action.",
+        }
+    }
 }
 
 impl From<OutcomeLabel> for Label {
@@ -319,6 +358,16 @@ impl ContextLabel {
             Self::Place => "place",
             Self::Person => "person",
             Self::Social => "social",
+        }
+    }
+
+    pub fn hypothesis(&self) -> &'static str {
+        match self {
+            Self::Fact => "This text states a factual piece of information.",
+            Self::Time => "This text references a specific time or date.",
+            Self::Place => "This text references a specific location or place.",
+            Self::Person => "This text contains information about a specific named person.",
+            Self::Social => "This text describes a relationship or social dynamic.",
         }
     }
 }
