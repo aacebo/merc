@@ -34,6 +34,22 @@ impl ScoreResult {
             .find(|v| v.label == label)
             .unwrap()
     }
+
+    pub fn labels(&self) -> Vec<&ScoreLabel> {
+        self.categories.iter().flat_map(|v| &v.labels).collect()
+    }
+
+    pub fn label(&self, label: Label) -> &ScoreLabel {
+        self.labels().iter().find(|l| l.label == label).unwrap()
+    }
+
+    pub fn label_score(&self, label: Label) -> f32 {
+        self.labels()
+            .iter()
+            .find(|l| l.label == label)
+            .map(|l| l.score)
+            .unwrap_or_default()
+    }
 }
 
 impl From<Vec<Vec<sequence_classification::Label>>> for ScoreResult {

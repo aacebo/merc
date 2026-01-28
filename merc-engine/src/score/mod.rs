@@ -36,8 +36,9 @@ impl Layer for ScoreLayer {
         )?;
 
         let mut result = LayerResult::new(ScoreResult::from(labels));
+        let score = result.data::<ScoreResult>();
 
-        if self.threshold > result.data::<ScoreResult>().score {
+        if score.score < self.threshold || score.label_score(ContextLabel::Phatic.into()) >= 0.8 {
             return Err(Error::builder()
                 .code(ErrorCode::Cancel)
                 .message(&format!(
