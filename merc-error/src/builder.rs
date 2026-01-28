@@ -1,4 +1,4 @@
-use std::{backtrace::Backtrace, collections::BTreeMap};
+use std::{backtrace::Backtrace, collections::BTreeMap, rc::Rc};
 
 use crate::{Error, ErrorCode};
 
@@ -6,8 +6,8 @@ pub struct ErrorBuilder {
     code: ErrorCode,
     message: Option<String>,
     fields: BTreeMap<String, String>,
-    backtrace: Option<Backtrace>,
-    inner: Option<Box<dyn std::error::Error + 'static>>,
+    backtrace: Option<Rc<Backtrace>>,
+    inner: Option<Rc<dyn std::error::Error + 'static>>,
 }
 
 impl ErrorBuilder {
@@ -37,12 +37,12 @@ impl ErrorBuilder {
     }
 
     pub fn backtrace(mut self) -> Self {
-        self.backtrace = Some(Backtrace::force_capture());
+        self.backtrace = Some(Rc::new(Backtrace::force_capture()));
         self
     }
 
     pub fn inner<TError: std::error::Error + 'static>(mut self, inner: TError) -> Self {
-        self.inner = Some(inner.into());
+        self.inner = Some(Rc::new(inner));
         self
     }
 

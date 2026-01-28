@@ -1,20 +1,22 @@
 mod builder;
 mod code;
+mod group;
 
 pub use builder::*;
 pub use code::*;
+pub use group::*;
 
-use std::{backtrace::Backtrace, collections::BTreeMap};
+use std::{backtrace::Backtrace, collections::BTreeMap, rc::Rc};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
     code: ErrorCode,
     message: Option<String>,
     fields: BTreeMap<String, String>,
-    backtrace: Option<Backtrace>,
-    inner: Option<Box<dyn std::error::Error + 'static>>,
+    backtrace: Option<Rc<Backtrace>>,
+    inner: Option<Rc<dyn std::error::Error + 'static>>,
 }
 
 impl Error {
@@ -72,7 +74,7 @@ impl<T: std::error::Error + 'static> From<T> for Error {
             message: None,
             fields: BTreeMap::new(),
             backtrace: None,
-            inner: Some(value.into()),
+            inner: Some(Rc::new(value)),
         }
     }
 }

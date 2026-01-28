@@ -4,6 +4,7 @@ mod layer;
 mod map;
 mod options;
 mod output;
+pub mod runtime;
 pub mod score;
 
 pub use context::*;
