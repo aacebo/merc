@@ -1948,6 +1948,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "merc-async"
+version = "0.0.1"
+dependencies = [
+ "merc-error",
+]
+
+[[package]]
 name = "merc-engine"
 version = "0.0.1"
 dependencies = [

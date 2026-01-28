@@ -13,6 +13,7 @@ homepage = "https://www.github.com/aacebo/merc"
 repository = "https://www.github.com/aacebo/merc"
 
 [workspace.dependencies]
+merc-async = { path = "./merc-async", version = "0.0.1" }
 merc-error = { path = "./merc-error", version = "0.0.1" }
 merc-events = { path = "./merc-events", version = "0.0.1" }
 merc-engine = { path = "./merc-engine", version = "0.0.1" }
