@@ -8,8 +8,6 @@ pub use label::*;
 pub use options::*;
 pub use result::*;
 
-use std::str::FromStr;
-
 use rust_bert::pipelines::zero_shot_classification;
 
 use merc_error::{Error, ErrorCode};
@@ -24,18 +22,13 @@ pub struct ScoreLayer {
 impl Layer for ScoreLayer {
     fn invoke(&self, ctx: &Context) -> merc_error::Result<LayerResult> {
         let started_at = chrono::Utc::now();
-        let labels = self.model.predict_multilabel(
-            vec![ctx.text.as_str()],
-            &Label::all().map(|l| l.as_str()),
-            Some(Box::new(|label: &str| {
-                Label::from_str(label)
-                    .map(|l| l.hypothesis().to_string())
-                    .unwrap_or_else(|_| format!("This example is {}.", label))
-            })),
-            128,
-        )?;
+        let mut result = LayerResult::new(ScoreResult::new(vec![
+            LabelCategory::Sentiment.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
+            LabelCategory::Emotion.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
+            LabelCategory::Outcome.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
+            LabelCategory::Context.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
+        ]));
 
-        let mut result = LayerResult::new(ScoreResult::from(labels));
         let score = result.data::<ScoreResult>();
 
         if score.score < self.threshold || score.label_score(ContextLabel::Phatic.into()) >= 0.8 {

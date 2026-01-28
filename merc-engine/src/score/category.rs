@@ -1,4 +1,11 @@
-use crate::score::{ContextLabel, EmotionLabel, Label, OutcomeLabel, SentimentLabel};
+use std::str::FromStr;
+
+use merc_error::Result;
+use rust_bert::pipelines::zero_shot_classification::ZeroShotClassificationModel;
+
+use crate::score::{
+    ContextLabel, EmotionLabel, Label, OutcomeLabel, ScoreCategory, ScoreLabel, SentimentLabel,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LabelCategory {
@@ -9,7 +16,7 @@ pub enum LabelCategory {
 }
 
 impl LabelCategory {
-    pub fn labels(self) -> &'static [Label] {
+    pub fn labels(&self) -> &'static [Label] {
         match self {
             Self::Sentiment => &[
                 Label::Sentiment(SentimentLabel::Positive),
@@ -46,6 +53,39 @@ impl LabelCategory {
                 Label::Context(ContextLabel::Task),
             ],
         }
+    }
+
+    pub fn evalute(
+        &self,
+        text: &[&str],
+        model: &ZeroShotClassificationModel,
+        k: usize,
+    ) -> Result<ScoreCategory> {
+        let labels = model
+            .predict_multilabel(
+                text,
+                &Label::all().map(|l| l.as_str()),
+                Some(Box::new(|label: &str| {
+                    Label::from_str(label)
+                        .map(|l| l.hypothesis().to_string())
+                        .unwrap_or_else(|_| format!("This example is {}.", label))
+                })),
+                128,
+            )?
+            .iter()
+            .flat_map(|c| c.iter().map(|l| l.clone()))
+            .filter_map(|l| {
+                if let Ok(label) = Label::from_str(&l.text) {
+                    if label.category() == *self {
+                        return Some(ScoreLabel::new(label, l.sentence).with_score(l.score as f32));
+                    }
+                }
+
+                None
+            })
+            .collect::<Vec<_>>();
+
+        Ok(ScoreCategory::topk(*self, labels, k))
     }
 }
 
