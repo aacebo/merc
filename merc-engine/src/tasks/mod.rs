@@ -13,17 +13,11 @@ use std::{
 
 type TaskState<T> = (Option<T>, Option<Waker>);
 
-///
-/// ## Spawn
-/// represents an async runtime that
-/// can spawn/track/manage tasks
-///
 pub trait Spawn: Send + Sync + 'static {
-    fn spawn<T, F, H>(&self, handler: H) -> Task<T>
+    fn spawn<T, H>(&self, handler: H) -> Task<T>
     where
         T: Send + 'static,
-        F: Future<Output = T> + Send + 'static,
-        H: FnOnce() -> F + Send + 'static;
+        H: FnOnce() -> T + Send + 'static;
 }
 
 ///
@@ -57,6 +51,10 @@ impl<T> Task<T> {
     pub fn cancel(&mut self) {
         self.status = TaskStatus::Cancelled;
     }
+
+    pub(crate) fn result(&self) -> TaskResult<T> {
+        self.result.clone()
+    }
 }
 
 impl<T> Future for Task<T> {
@@ -87,8 +85,13 @@ impl<T> Future for Task<T> {
 /// holds the tasks result state (value or error)
 /// and exposes methods for completing the task.
 ///
-#[derive(Clone)]
 pub struct TaskResult<T>(Arc<Mutex<TaskState<Result<T>>>>);
+
+impl<T> Clone for TaskResult<T> {
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+}
 
 impl<T> TaskResult<T> {
     pub fn ok(&self, value: T) {

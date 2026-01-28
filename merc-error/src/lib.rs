@@ -6,7 +6,7 @@ pub use builder::*;
 pub use code::*;
 pub use group::*;
 
-use std::{backtrace::Backtrace, collections::BTreeMap, rc::Rc};
+use std::{any::Any, backtrace::Backtrace, collections::BTreeMap, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -15,8 +15,8 @@ pub struct Error {
     code: ErrorCode,
     message: Option<String>,
     fields: BTreeMap<String, String>,
-    backtrace: Option<Rc<Backtrace>>,
-    inner: Option<Rc<dyn std::error::Error + 'static>>,
+    backtrace: Option<Arc<Backtrace>>,
+    inner: Option<Arc<dyn std::error::Error + Send + Sync + 'static>>,
 }
 
 impl Error {
@@ -32,6 +32,21 @@ impl Error {
 
     pub fn builder() -> ErrorBuilder {
         ErrorBuilder::new()
+    }
+
+    pub fn panic(info: Box<dyn Any + Send>) -> Self {
+        let message = if let Some(s) = info.downcast_ref::<&str>() {
+            s.to_string()
+        } else if let Some(s) = info.downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Unknown panic".to_string()
+        };
+
+        Self::builder()
+            .code(ErrorCode::Unknown)
+            .message(format!("Task panicked: {}", message))
+            .build()
     }
 
     pub fn code(&self) -> &ErrorCode {
@@ -67,14 +82,14 @@ impl Error {
     }
 }
 
-impl<T: std::error::Error + 'static> From<T> for Error {
+impl<T: std::error::Error + Send + Sync + 'static> From<T> for Error {
     fn from(value: T) -> Self {
         Self {
             code: ErrorCode::default(),
             message: None,
             fields: BTreeMap::new(),
             backtrace: None,
-            inner: Some(Rc::new(value)),
+            inner: Some(Arc::new(value)),
         }
     }
 }
