@@ -87,11 +87,15 @@ pub struct ScoreCategory {
 impl ScoreCategory {
     pub fn topk(label: LabelCategory, labels: Vec<ScoreLabel>, k: usize) -> Self {
         let take = k.min(labels.len()).max(1);
-        let mut top = labels.clone();
+        let mut list = labels.clone();
         let mut score = 0.0f32;
 
-        top.sort_by(|a, b| b.score.total_cmp(&a.score));
-        top = top.iter().take(take).map(|v| v.clone()).collect::<Vec<_>>();
+        list.sort_by(|a, b| b.score.total_cmp(&a.score));
+        let top = list
+            .iter()
+            .take(take)
+            .map(|v| v.clone())
+            .collect::<Vec<_>>();
 
         for label in &top {
             score += label.score;
@@ -104,7 +108,7 @@ impl ScoreCategory {
             } else {
                 score / take as f32
             },
-            labels: top,
+            labels: list,
         }
     }
 }

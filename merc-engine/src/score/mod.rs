@@ -65,6 +65,8 @@ impl Layer for ScoreLayer {
         }
 
         result.meta.set("elapse", elapse_message);
+        result.meta.set("step", ctx.step);
+        result.meta.set("text", ctx.text.clone());
         Ok(result)
     }
 }

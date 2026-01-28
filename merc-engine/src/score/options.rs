@@ -12,7 +12,7 @@ pub struct ScoreOptions {
 impl ScoreOptions {
     pub fn new() -> Self {
         Self {
-            threshold: 0.7,
+            threshold: 0.75,
             ..Default::default()
         }
     }
