@@ -1,4 +1,3 @@
-pub mod r#async;
 mod context;
 mod engine;
 mod layer;
@@ -6,6 +5,7 @@ mod map;
 mod options;
 mod output;
 pub mod score;
+pub mod tasks;
 
 pub use context::*;
 pub use engine::*;
