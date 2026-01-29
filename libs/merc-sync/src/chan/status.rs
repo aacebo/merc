@@ -1,5 +1,9 @@
+use std::sync::atomic::{AtomicU8, Ordering};
+
+#[repr(u8)]
+#[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum State {
+pub enum Status {
     /// Senders may still send (subject to capacity).
     Open,
 
@@ -10,7 +14,7 @@ pub enum State {
     Closed,
 }
 
-impl State {
+impl Status {
     pub fn is_open(&self) -> bool {
         match self {
             Self::Open => true,
@@ -38,15 +42,33 @@ impl State {
             _ => false,
         }
     }
+
+    pub fn atomic(&self) -> AtomicU8 {
+        match self {
+            Self::Open => AtomicU8::new(0),
+            Self::Draining => AtomicU8::new(1),
+            Self::Closed => AtomicU8::new(2),
+        }
+    }
 }
 
-impl Default for State {
+impl From<&AtomicU8> for Status {
+    fn from(value: &AtomicU8) -> Self {
+        match value.load(Ordering::Relaxed) {
+            0 => Self::Open,
+            1 => Self::Draining,
+            _ => Self::Closed,
+        }
+    }
+}
+
+impl Default for Status {
     fn default() -> Self {
         Self::Closed
     }
 }
 
-impl std::fmt::Display for State {
+impl std::fmt::Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Open => write!(f, "open"),
@@ -55,65 +77,3 @@ impl std::fmt::Display for State {
         }
     }
 }
-
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Status {
-    /// channel open/closed
-    state: State,
-
-    /// Messages currently buffered (0 if unknown).
-    len: usize,
-
-    /// Capacity (None = unbounded or unknown).
-    capacity: Option<usize>,
-}
-
-impl Status {
-    pub fn bound(capacity: usize) -> Self {
-        Self {
-            capacity: Some(capacity),
-            ..Default::default()
-        }
-    }
-
-    pub fn is_full(&self) -> bool {
-        match self.capacity {
-            None => false,
-            Some(cap) => self.len == cap,
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
-    pub fn state(&self) -> State {
-        self.state
-    }
-
-    pub fn with_state(mut self, state: State) -> Self {
-        self.state = state;
-        self
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    pub fn with_len(mut self, len: usize) -> Self {
-        self.len = len;
-        self
-    }
-
-    pub fn capacity(&self) -> Option<usize> {
-        self.capacity
-    }
-}
-
-// impl std::ops::Deref for Status {
-//     type Target = State;
-
-//     fn deref(&self) -> &Self::Target {
-//         &self.state
-//     }
-// }

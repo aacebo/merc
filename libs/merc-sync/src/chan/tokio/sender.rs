@@ -25,7 +25,15 @@ impl<T: std::fmt::Debug> std::ops::Deref for TokioSender<T> {
 
 impl<T: std::fmt::Debug> Channel for TokioSender<T> {
     fn status(&self) -> Status {
-        self.parent.status.into()
+        self.parent.status()
+    }
+
+    fn len(&self) -> usize {
+        self.parent.len()
+    }
+
+    fn capacity(&self) -> Option<usize> {
+        self.parent.capacity()
     }
 }
 

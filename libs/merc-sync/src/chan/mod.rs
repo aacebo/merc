@@ -8,6 +8,8 @@ pub use status::*;
 
 pub trait Channel {
     fn status(&self) -> Status;
+    fn len(&self) -> usize;
+    fn capacity(&self) -> Option<usize>;
 }
 
 pub trait Sender: Channel + Send + Sync + 'static {
