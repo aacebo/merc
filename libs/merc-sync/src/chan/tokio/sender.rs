@@ -1,56 +1,221 @@
+use std::any::type_name_of_val;
+
 use tokio::sync::mpsc;
 
 use crate::chan::{Channel, Sender, Status};
 
-pub enum TokioSender<T> {
-    Bound(Status, mpsc::Sender<T>),
-    UnBound(Status, mpsc::UnboundedSender<T>),
+#[derive(Debug)]
+pub struct TokioSender<T: std::fmt::Debug> {
+    status: Status,
+    inner: MpscSender<T>,
 }
 
-impl<T> TokioSender<T> {
+impl<T: std::fmt::Debug> From<MpscSender<T>> for TokioSender<T> {
+    fn from(value: MpscSender<T>) -> Self {
+        let status = match &value {
+            MpscSender::Bound(v) => Status::bound(v.max_capacity()).with_len(v.capacity()),
+            _ => Status::default(),
+        };
+
+        Self {
+            status,
+            inner: value,
+        }
+    }
+}
+
+impl<T: std::fmt::Debug> std::ops::Deref for TokioSender<T> {
+    type Target = MpscSender<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T: std::fmt::Debug> Channel for TokioSender<T> {
+    fn status(&self) -> Status {
+        self.status
+    }
+}
+
+impl<T: std::fmt::Debug + Send + 'static> Sender for TokioSender<T> {
+    type Item = T;
+
+    fn send(&self, _: Self::Item) -> Result<(), crate::chan::error::SendError> {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
+pub enum MpscSender<T: std::fmt::Debug> {
+    Bound(mpsc::Sender<T>),
+    UnBound(mpsc::UnboundedSender<T>),
+    Weak(MpscWeakSender<T>),
+}
+
+impl<T: std::fmt::Debug> MpscSender<T> {
     pub fn is_bound(&self) -> bool {
         match self {
-            Self::Bound(_, _) => true,
+            Self::Bound(_) => true,
+            Self::Weak(v) => v.is_bound(),
             _ => false,
         }
     }
 
     pub fn is_unbound(&self) -> bool {
         match self {
-            Self::UnBound(_, _) => true,
+            Self::UnBound(_) => true,
+            Self::Weak(v) => v.is_unbound(),
             _ => false,
         }
     }
-}
 
-impl<T> From<mpsc::Sender<T>> for TokioSender<T> {
-    fn from(value: mpsc::Sender<T>) -> Self {
-        Self::Bound(
-            Status::bound(value.max_capacity()).with_len(value.capacity()),
-            value,
-        )
-    }
-}
-
-impl<T> From<mpsc::UnboundedSender<T>> for TokioSender<T> {
-    fn from(value: mpsc::UnboundedSender<T>) -> Self {
-        Self::UnBound(Status::default().with_len(value.strong_count()), value)
-    }
-}
-
-impl<T> Channel for TokioSender<T> {
-    fn status(&self) -> Status {
+    pub fn is_weak(&self) -> bool {
         match self {
-            Self::Bound(s, _) => *s,
-            Self::UnBound(s, _) => *s,
+            Self::Weak(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_closed(&self) -> bool {
+        match self {
+            Self::Bound(v) => v.is_closed(),
+            Self::UnBound(v) => v.is_closed(),
+            v => panic!("attempted use of {}::is_closed", type_name_of_val(v)),
+        }
+    }
+
+    pub async fn closed(&self) {
+        match self {
+            Self::Bound(v) => v.closed().await,
+            Self::UnBound(v) => v.closed().await,
+            v => panic!("attempted use of {}::closed", type_name_of_val(v)),
+        }
+    }
+
+    pub fn capacity(&self) -> usize {
+        match self {
+            Self::Bound(v) => v.capacity(),
+            v => panic!("attempted use of {}::capacity", type_name_of_val(v)),
+        }
+    }
+
+    pub fn max_capacity(&self) -> Option<usize> {
+        match self {
+            Self::Bound(v) => Some(v.max_capacity()),
+            _ => None,
+        }
+    }
+
+    pub fn weak_count(&self) -> usize {
+        match self {
+            Self::Bound(v) => v.weak_count(),
+            Self::UnBound(v) => v.weak_count(),
+            Self::Weak(v) => v.weak_count(),
+        }
+    }
+
+    pub fn strong_count(&self) -> usize {
+        match self {
+            Self::Bound(v) => v.strong_count(),
+            Self::UnBound(v) => v.strong_count(),
+            Self::Weak(v) => v.strong_count(),
+        }
+    }
+
+    pub fn downgrade(&self) -> MpscWeakSender<T>
+    where
+        T: Clone,
+    {
+        match self {
+            Self::Bound(v) => v.downgrade().into(),
+            Self::UnBound(v) => v.downgrade().into(),
+            Self::Weak(v) => v.clone(),
         }
     }
 }
 
-impl<T: Send + Sync + 'static> Sender for TokioSender<T> {
-    type Item = T;
+impl<T: Clone + std::fmt::Debug> Clone for MpscSender<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Bound(v) => v.clone().into(),
+            Self::UnBound(v) => v.clone().into(),
+            Self::Weak(v) => v.clone().into(),
+        }
+    }
+}
 
-    fn send(&self, _: Self::Item) -> Result<(), crate::chan::error::SendError> {
-        todo!()
+impl<T: std::fmt::Debug> From<mpsc::Sender<T>> for MpscSender<T> {
+    fn from(value: mpsc::Sender<T>) -> Self {
+        Self::Bound(value)
+    }
+}
+
+impl<T: std::fmt::Debug> From<mpsc::UnboundedSender<T>> for MpscSender<T> {
+    fn from(value: mpsc::UnboundedSender<T>) -> Self {
+        Self::UnBound(value)
+    }
+}
+
+impl<T: std::fmt::Debug> From<MpscWeakSender<T>> for MpscSender<T> {
+    fn from(value: MpscWeakSender<T>) -> Self {
+        Self::Weak(value)
+    }
+}
+
+#[derive(Debug)]
+pub enum MpscWeakSender<T: std::fmt::Debug> {
+    Bound(mpsc::WeakSender<T>),
+    UnBound(mpsc::WeakUnboundedSender<T>),
+}
+
+impl<T: std::fmt::Debug> MpscWeakSender<T> {
+    pub fn is_bound(&self) -> bool {
+        match self {
+            Self::Bound(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_unbound(&self) -> bool {
+        match self {
+            Self::UnBound(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn weak_count(&self) -> usize {
+        match self {
+            Self::Bound(v) => v.weak_count(),
+            Self::UnBound(v) => v.weak_count(),
+        }
+    }
+
+    pub fn strong_count(&self) -> usize {
+        match self {
+            Self::Bound(v) => v.strong_count(),
+            Self::UnBound(v) => v.strong_count(),
+        }
+    }
+}
+
+impl<T: Clone + std::fmt::Debug> Clone for MpscWeakSender<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Bound(v) => v.clone().into(),
+            Self::UnBound(v) => v.clone().into(),
+        }
+    }
+}
+
+impl<T: std::fmt::Debug> From<mpsc::WeakSender<T>> for MpscWeakSender<T> {
+    fn from(value: mpsc::WeakSender<T>) -> Self {
+        Self::Bound(value)
+    }
+}
+
+impl<T: std::fmt::Debug> From<mpsc::WeakUnboundedSender<T>> for MpscWeakSender<T> {
+    fn from(value: mpsc::WeakUnboundedSender<T>) -> Self {
+        Self::UnBound(value)
     }
 }
