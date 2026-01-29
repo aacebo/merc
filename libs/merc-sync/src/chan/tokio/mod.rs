@@ -10,10 +10,12 @@ use tokio::sync::mpsc;
 
 use crate::chan::{Channel, Status};
 
+#[track_caller]
 pub fn open<T: std::fmt::Debug>() -> TokioChannel<T> {
     TokioChannel::new()
 }
 
+#[track_caller]
 pub fn alloc<T: std::fmt::Debug>(capacity: usize) -> TokioChannel<T> {
     TokioChannel::bound(capacity)
 }
