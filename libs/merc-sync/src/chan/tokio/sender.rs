@@ -50,14 +50,12 @@ impl<T: std::fmt::Debug + Send + 'static> Sender for TokioSender<T> {
 pub enum MpscSender<T: std::fmt::Debug> {
     Bound(mpsc::Sender<T>),
     UnBound(mpsc::UnboundedSender<T>),
-    Weak(MpscWeakSender<T>),
 }
 
 impl<T: std::fmt::Debug> MpscSender<T> {
     pub fn is_bound(&self) -> bool {
         match self {
             Self::Bound(_) => true,
-            Self::Weak(v) => v.is_bound(),
             _ => false,
         }
     }
@@ -65,14 +63,6 @@ impl<T: std::fmt::Debug> MpscSender<T> {
     pub fn is_unbound(&self) -> bool {
         match self {
             Self::UnBound(_) => true,
-            Self::Weak(v) => v.is_unbound(),
-            _ => false,
-        }
-    }
-
-    pub fn is_weak(&self) -> bool {
-        match self {
-            Self::Weak(_) => true,
             _ => false,
         }
     }
@@ -81,7 +71,6 @@ impl<T: std::fmt::Debug> MpscSender<T> {
         match self {
             Self::Bound(v) => v.is_closed(),
             Self::UnBound(v) => v.is_closed(),
-            v => panic!("attempted use of {}::is_closed", type_name_of_val(v)),
         }
     }
 
@@ -89,7 +78,6 @@ impl<T: std::fmt::Debug> MpscSender<T> {
         match self {
             Self::Bound(v) => v.closed().await,
             Self::UnBound(v) => v.closed().await,
-            v => panic!("attempted use of {}::closed", type_name_of_val(v)),
         }
     }
 
@@ -111,7 +99,6 @@ impl<T: std::fmt::Debug> MpscSender<T> {
         match self {
             Self::Bound(v) => v.weak_count(),
             Self::UnBound(v) => v.weak_count(),
-            Self::Weak(v) => v.weak_count(),
         }
     }
 
@@ -119,7 +106,6 @@ impl<T: std::fmt::Debug> MpscSender<T> {
         match self {
             Self::Bound(v) => v.strong_count(),
             Self::UnBound(v) => v.strong_count(),
-            Self::Weak(v) => v.strong_count(),
         }
     }
 
@@ -130,7 +116,6 @@ impl<T: std::fmt::Debug> MpscSender<T> {
         match self {
             Self::Bound(v) => v.downgrade().into(),
             Self::UnBound(v) => v.downgrade().into(),
-            Self::Weak(v) => v.clone(),
         }
     }
 }
@@ -140,7 +125,6 @@ impl<T: Clone + std::fmt::Debug> Clone for MpscSender<T> {
         match self {
             Self::Bound(v) => v.clone().into(),
             Self::UnBound(v) => v.clone().into(),
-            Self::Weak(v) => v.clone().into(),
         }
     }
 }
@@ -154,12 +138,6 @@ impl<T: std::fmt::Debug> From<mpsc::Sender<T>> for MpscSender<T> {
 impl<T: std::fmt::Debug> From<mpsc::UnboundedSender<T>> for MpscSender<T> {
     fn from(value: mpsc::UnboundedSender<T>) -> Self {
         Self::UnBound(value)
-    }
-}
-
-impl<T: std::fmt::Debug> From<MpscWeakSender<T>> for MpscSender<T> {
-    fn from(value: MpscWeakSender<T>) -> Self {
-        Self::Weak(value)
     }
 }
 
@@ -195,6 +173,13 @@ impl<T: std::fmt::Debug> MpscWeakSender<T> {
         match self {
             Self::Bound(v) => v.strong_count(),
             Self::UnBound(v) => v.strong_count(),
+        }
+    }
+
+    pub fn upgrade(&self) -> Option<MpscSender<T>> {
+        match self {
+            Self::Bound(v) => Some(v.upgrade()?.into()),
+            Self::UnBound(v) => Some(v.upgrade()?.into()),
         }
     }
 }
