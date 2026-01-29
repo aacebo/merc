@@ -1,10 +1,10 @@
 mod receiver;
 mod sender;
 
-use std::sync::Arc;
-
 pub use receiver::*;
 pub use sender::*;
+
+use std::sync::Arc;
 
 use tokio::sync::mpsc;
 
@@ -20,7 +20,7 @@ pub fn alloc<T: std::fmt::Debug>(capacity: usize) -> TokioChannel<T> {
 
 #[derive(Debug)]
 pub struct TokioChannel<T: std::fmt::Debug> {
-    sender: Arc<MpscSender<T>>,
+    sender: MpscSender<T>,
     receiver: Arc<MpscReceiver<T>>,
 }
 
@@ -29,7 +29,7 @@ impl<T: std::fmt::Debug> TokioChannel<T> {
         let (sender, receiver) = mpsc::unbounded_channel();
 
         Self {
-            sender: Arc::new(MpscSender::from(sender)),
+            sender: MpscSender::from(sender),
             receiver: Arc::new(MpscReceiver::from(receiver)),
         }
     }
@@ -38,24 +38,24 @@ impl<T: std::fmt::Debug> TokioChannel<T> {
         let (sender, receiver) = mpsc::channel(capacity);
 
         Self {
-            sender: Arc::new(MpscSender::from(sender)),
+            sender: MpscSender::from(sender),
             receiver: Arc::new(MpscReceiver::from(receiver)),
         }
     }
 
     pub fn sender(&self) -> TokioSender<T> {
-        TokioSender::new(self.clone())
+        TokioSender::new(self.sender.clone())
     }
 
     pub fn receiver(&self) -> TokioReceiver<T> {
-        TokioReceiver::new(self.clone())
+        TokioReceiver::new(Arc::clone(&self.receiver))
     }
 }
 
 impl<T: std::fmt::Debug> Clone for TokioChannel<T> {
     fn clone(&self) -> Self {
         Self {
-            sender: Arc::clone(&self.sender),
+            sender: self.sender.clone(),
             receiver: Arc::clone(&self.receiver),
         }
     }

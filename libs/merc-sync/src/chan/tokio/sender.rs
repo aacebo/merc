@@ -2,16 +2,16 @@ use std::{any::type_name_of_val, time::Duration};
 
 use tokio::sync::mpsc;
 
-use crate::chan::{Channel, Sender, Status, tokio::TokioChannel};
+use crate::chan::{Channel, Sender, Status};
 
 #[derive(Debug, Clone)]
 pub struct TokioSender<T: std::fmt::Debug> {
-    channel: TokioChannel<T>,
+    sender: MpscSender<T>,
 }
 
 impl<T: std::fmt::Debug> TokioSender<T> {
-    pub fn new(channel: TokioChannel<T>) -> Self {
-        Self { channel }
+    pub fn new(sender: MpscSender<T>) -> Self {
+        Self { sender }
     }
 }
 
@@ -19,21 +19,21 @@ impl<T: std::fmt::Debug> std::ops::Deref for TokioSender<T> {
     type Target = MpscSender<T>;
 
     fn deref(&self) -> &Self::Target {
-        &self.channel.sender
+        &self.sender
     }
 }
 
 impl<T: std::fmt::Debug> Channel for TokioSender<T> {
     fn status(&self) -> Status {
-        self.channel.status()
+        self.sender.status()
     }
 
     fn len(&self) -> usize {
-        self.channel.len()
+        self.sender.capacity()
     }
 
     fn capacity(&self) -> Option<usize> {
-        self.channel.capacity()
+        self.sender.max_capacity()
     }
 }
 
@@ -152,7 +152,7 @@ impl<T: std::fmt::Debug> MpscSender<T> {
     }
 }
 
-impl<T: Clone + std::fmt::Debug> Clone for MpscSender<T> {
+impl<T: std::fmt::Debug> Clone for MpscSender<T> {
     fn clone(&self) -> Self {
         match self {
             Self::Bound(v) => v.clone().into(),
@@ -173,7 +173,7 @@ impl<T: std::fmt::Debug> From<mpsc::UnboundedSender<T>> for MpscSender<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MpscWeakSender<T: std::fmt::Debug> {
     Bound(mpsc::WeakSender<T>),
     UnBound(mpsc::WeakUnboundedSender<T>),
@@ -212,15 +212,6 @@ impl<T: std::fmt::Debug> MpscWeakSender<T> {
         match self {
             Self::Bound(v) => Some(v.upgrade()?.into()),
             Self::UnBound(v) => Some(v.upgrade()?.into()),
-        }
-    }
-}
-
-impl<T: Clone + std::fmt::Debug> Clone for MpscWeakSender<T> {
-    fn clone(&self) -> Self {
-        match self {
-            Self::Bound(v) => v.clone().into(),
-            Self::UnBound(v) => v.clone().into(),
         }
     }
 }
