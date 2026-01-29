@@ -47,15 +47,15 @@ pub enum RecvError {
     /// the channel is closed
     Closed,
 
-    /// the received payload is invalid
-    BadRequest,
+    /// the channel is empty (no messages available)
+    Empty,
 }
 
 impl std::fmt::Display for RecvError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Closed => write!(f, "closed"),
-            Self::BadRequest => write!(f, "bad-request"),
+            Self::Empty => write!(f, "empty"),
         }
     }
 }

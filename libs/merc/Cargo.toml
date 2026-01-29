@@ -15,6 +15,7 @@ doctest = false
 error = ["dep:merc-error"]
 engine = ["dep:merc-engine"]
 sync = ["dep:merc-sync"]
+tokio = ["merc-sync/tokio"]
 
 [dependencies]
 merc-error = { workspace = true, optional = true }

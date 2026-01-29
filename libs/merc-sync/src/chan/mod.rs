@@ -1,6 +1,9 @@
 pub mod error;
 mod status;
 
+#[cfg(feature = "tokio")]
+pub mod tokio;
+
 pub use status::*;
 
 pub trait Channel {

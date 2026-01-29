@@ -10,7 +10,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true }
 events = { workspace = true }
 merc = { workspace = true, features = ["error"] }

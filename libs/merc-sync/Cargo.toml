@@ -11,5 +11,8 @@ repository.workspace = true
 [lib]
 doctest = false
 
+[features]
+tokio = ["dep:tokio"]
+
 [dependencies]
-merc-error = { workspace = true }
+tokio = { workspace = true, features = ["sync"], optional = true }

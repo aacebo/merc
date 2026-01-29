@@ -1986,7 +1986,7 @@ version = "0.0.1"
 name = "merc-sync"
 version = "0.0.1"
 dependencies = [
- "merc-error",
+ "tokio",
 ]
 
 [[package]]
