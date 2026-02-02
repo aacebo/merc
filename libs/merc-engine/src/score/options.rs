@@ -6,6 +6,7 @@ use crate::score::ScoreLayer;
 #[derive(Default)]
 pub struct ScoreOptions {
     threshold: f32,
+    dynamic_threshold: bool,
     model: zero_shot_classification::ZeroShotClassificationConfig,
 }
 
@@ -22,6 +23,11 @@ impl ScoreOptions {
         self
     }
 
+    pub fn with_dynamic_threshold(mut self, value: bool) -> Self {
+        self.dynamic_threshold = value;
+        self
+    }
+
     pub fn with_model(
         mut self,
         config: zero_shot_classification::ZeroShotClassificationConfig,
@@ -35,6 +41,7 @@ impl ScoreOptions {
 
         Ok(ScoreLayer {
             threshold: self.threshold,
+            dynamic_threshold: self.dynamic_threshold,
             model,
         })
     }

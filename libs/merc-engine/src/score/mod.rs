@@ -16,7 +16,22 @@ use crate::{Context, Layer, LayerResult};
 
 pub struct ScoreLayer {
     threshold: f32,
+    dynamic_threshold: bool,
     model: zero_shot_classification::ZeroShotClassificationModel,
+}
+
+/// Compute effective threshold based on text length.
+/// Short text (<= 20 chars) gets a lower threshold (easier to accept).
+/// Long text (> 200 chars) gets a higher threshold (harder to accept).
+fn compute_threshold(text: &str, base: f32, dynamic: bool) -> f32 {
+    if !dynamic {
+        return base;
+    }
+    match text.len() {
+        0..=20 => base - 0.05,
+        21..=200 => base,
+        _ => base + 0.05,
+    }
 }
 
 impl Layer for ScoreLayer {
@@ -30,14 +45,15 @@ impl Layer for ScoreLayer {
         ]));
 
         let score = result.data::<ScoreResult>();
+        let effective_threshold = compute_threshold(&ctx.text, self.threshold, self.dynamic_threshold);
 
-        if score.score < self.threshold || score.label_score(ContextLabel::Phatic.into()) >= 0.8 {
+        if score.score < effective_threshold || score.label_score(ContextLabel::Phatic.into()) >= 0.8 {
             return Err(Error::builder()
                 .code(ErrorCode::Cancel)
                 .message(&format!(
                     "score {} is less than minimum threshold {}",
                     result.data::<ScoreResult>().score,
-                    self.threshold
+                    effective_threshold
                 ))
                 .build());
         }

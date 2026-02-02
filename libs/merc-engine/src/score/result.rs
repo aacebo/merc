@@ -4,6 +4,18 @@ use rust_bert::pipelines::sequence_classification;
 
 use crate::score::{Label, LabelCategory};
 
+/// Apply Platt scaling to calibrate raw model scores.
+/// P(y|x) = 1 / (1 + exp(-Ax - B))
+/// With identity params (a=1.0, b=0.0), returns raw score unchanged.
+#[inline]
+fn calibrate(raw: f32, a: f32, b: f32) -> f32 {
+    // Identity: skip calibration
+    if (a - 1.0).abs() < f32::EPSILON && b.abs() < f32::EPSILON {
+        return raw;
+    }
+    1.0 / (1.0 + (-a * raw - b).exp())
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct ScoreResult {
     pub score: f32,
@@ -129,9 +141,10 @@ impl ScoreLabel {
         }
     }
 
-    pub fn with_score(mut self, score: f32) -> Self {
-        if score >= self.label.threshold() {
-            self.score = score * self.label.weight();
+    pub fn with_score(mut self, raw_score: f32) -> Self {
+        let calibrated = calibrate(raw_score, self.label.platt_a(), self.label.platt_b());
+        if calibrated >= self.label.threshold() {
+            self.score = calibrated * self.label.weight();
         }
 
         self

@@ -134,6 +134,27 @@ impl Label {
             Self::Context(v) => v.weight(),
         }
     }
+
+    /// Platt scaling parameter A for calibration.
+    /// P(y|x) = 1 / (1 + exp(-Ax - B))
+    pub fn platt_a(&self) -> f32 {
+        match self {
+            Self::Sentiment(v) => v.platt_a(),
+            Self::Emotion(v) => v.platt_a(),
+            Self::Outcome(v) => v.platt_a(),
+            Self::Context(v) => v.platt_a(),
+        }
+    }
+
+    /// Platt scaling parameter B for calibration.
+    pub fn platt_b(&self) -> f32 {
+        match self {
+            Self::Sentiment(v) => v.platt_b(),
+            Self::Emotion(v) => v.platt_b(),
+            Self::Outcome(v) => v.platt_b(),
+            Self::Context(v) => v.platt_b(),
+        }
+    }
 }
 
 impl FromStr for Label {
@@ -191,9 +212,9 @@ impl SentimentLabel {
 
     pub fn hypothesis(&self) -> &'static str {
         match self {
-            Self::Positive => "This text expresses a positive sentiment.",
-            Self::Negative => "This text expresses a negative sentiment.",
-            Self::Neutral => "This text expresses a neutral sentiment.",
+            Self::Positive => "The speaker is expressing a positive, happy, or optimistic sentiment.",
+            Self::Negative => "The speaker is expressing a negative, unhappy, or pessimistic sentiment.",
+            Self::Neutral => "The speaker is expressing a neutral or matter-of-fact sentiment without strong emotion.",
         }
     }
 
@@ -207,6 +228,16 @@ impl SentimentLabel {
 
     pub fn threshold(&self) -> f32 {
         0.70
+    }
+
+    /// Platt scaling parameter A (identity: 1.0)
+    pub fn platt_a(&self) -> f32 {
+        1.0
+    }
+
+    /// Platt scaling parameter B (identity: 0.0)
+    pub fn platt_b(&self) -> f32 {
+        0.0
     }
 }
 
@@ -267,13 +298,13 @@ impl EmotionLabel {
 
     pub fn hypothesis(&self) -> &'static str {
         match self {
-            Self::Joy => "This text expresses joy or happiness.",
-            Self::Fear => "This text expresses fear or anxiety.",
-            Self::Shame => "This text expresses shame or embarrassment.",
-            Self::Pride => "This text expresses pride or accomplishment.",
-            Self::Stress => "This text expresses stress or pressure.",
-            Self::Anger => "This text expresses anger or frustration.",
-            Self::Sad => "This text expresses sadness or grief.",
+            Self::Joy => "The speaker is feeling joyful, happy, or excited about something.",
+            Self::Fear => "The speaker is feeling afraid, anxious, or worried about something.",
+            Self::Shame => "The speaker is feeling ashamed, embarrassed, or guilty about something.",
+            Self::Pride => "The speaker is feeling proud, accomplished, or satisfied with an achievement.",
+            Self::Stress => "The speaker is feeling stressed, overwhelmed, or under pressure.",
+            Self::Anger => "The speaker is feeling angry, frustrated, or irritated about something.",
+            Self::Sad => "The speaker is feeling sad, upset, or grieving about something.",
         }
     }
 
@@ -292,6 +323,16 @@ impl EmotionLabel {
 
     pub fn threshold(&self) -> f32 {
         0.70
+    }
+
+    /// Platt scaling parameter A (identity: 1.0)
+    pub fn platt_a(&self) -> f32 {
+        1.0
+    }
+
+    /// Platt scaling parameter B (identity: 0.0)
+    pub fn platt_b(&self) -> f32 {
+        0.0
     }
 }
 
@@ -360,15 +401,13 @@ impl OutcomeLabel {
 
     pub fn hypothesis(&self) -> &'static str {
         match self {
-            Self::Success => "This text describes achieving a goal or success.",
-            Self::Failure => "This text describes a failure or setback.",
-            Self::Reward => "This text describes receiving a reward or benefit.",
-            Self::Punishment => "This text describes a punishment or consequence.",
-            Self::Decision => "This text describes making a decision or choice.",
-            Self::Progress => {
-                "This text describes progress, completion, or forward movement on something."
-            }
-            Self::Conflict => "This text describes disagreement, conflict, argument, or tension.",
+            Self::Success => "The speaker is describing a success, achievement, or accomplishment.",
+            Self::Failure => "The speaker is describing a failure, setback, or something that went wrong.",
+            Self::Reward => "The speaker is describing receiving a reward, benefit, or positive outcome.",
+            Self::Punishment => "The speaker is describing a punishment, penalty, or negative consequence.",
+            Self::Decision => "The speaker has made or is announcing a decision or choice.",
+            Self::Progress => "The speaker is describing progress, completion, or forward movement on something.",
+            Self::Conflict => "The speaker is describing a disagreement, conflict, argument, or interpersonal tension.",
         }
     }
 
@@ -387,6 +426,16 @@ impl OutcomeLabel {
 
     pub fn threshold(&self) -> f32 {
         0.70
+    }
+
+    /// Platt scaling parameter A (identity: 1.0)
+    pub fn platt_a(&self) -> f32 {
+        1.0
+    }
+
+    /// Platt scaling parameter B (identity: 0.0)
+    pub fn platt_b(&self) -> f32 {
+        0.0
     }
 }
 
@@ -459,15 +508,15 @@ impl ContextLabel {
 
     pub fn hypothesis(&self) -> &'static str {
         match self {
-            Self::Fact => "This text states a factual piece of information.",
-            Self::Time => "This text references a specific time or date.",
-            Self::Place => "This text references a specific location or place.",
-            Self::Entity => "This text mentions a specific named person, organization, or entity.",
-            Self::Phatic => "This text is a greeting, thanks, farewell, or polite small talk.",
-            Self::Preference => "This text expresses a preference, like, dislike, or opinion.",
-            Self::Plan => "This text describes a plan, commitment, or intention for future action.",
-            Self::Goal => "This text describes a goal, objective, or aspiration.",
-            Self::Task => "This text describes a task, todo item, or reminder.",
+            Self::Fact => "The speaker is stating a factual piece of information that should be remembered.",
+            Self::Time => "The speaker is mentioning a specific time, date, or deadline.",
+            Self::Place => "The speaker is mentioning a specific location, place, or address.",
+            Self::Entity => "The speaker is mentioning a specific named person, organization, or entity.",
+            Self::Phatic => "This is just social pleasantry, small talk, or acknowledgment with no substantive information.",
+            Self::Preference => "The speaker is expressing a personal preference, like, dislike, or opinion.",
+            Self::Plan => "The speaker is describing a plan, intention, or commitment to do something.",
+            Self::Goal => "The speaker is describing a goal, objective, aspiration, or something they want to achieve.",
+            Self::Task => "The speaker is describing something they need to do, remember, or a task to complete.",
         }
     }
 
@@ -503,6 +552,16 @@ impl ContextLabel {
             // Default
             _ => 0.70,
         }
+    }
+
+    /// Platt scaling parameter A (identity: 1.0)
+    pub fn platt_a(&self) -> f32 {
+        1.0
+    }
+
+    /// Platt scaling parameter B (identity: 0.0)
+    pub fn platt_b(&self) -> f32 {
+        0.0
     }
 }
 
