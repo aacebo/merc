@@ -1,4 +1,4 @@
-# Scoring Comparison: Merc vs Hindsight
+# Memory System Comparison: Merc vs Hindsight
 
 A comparison of how each system decides what qualifies as a memory worth storing.
 
@@ -205,12 +205,12 @@ HINDSIGHT:
 
 | Dimension | Winner | Why |
 |-----------|--------|-----|
-| **Storage efficiency** | 🏆 **Merc** | Only stores important content. Hindsight stores everything. |
-| **Write latency** | 🏆 **Merc** | Single local model (~50ms) vs LLM extraction (~500ms+). |
-| **Write cost** | 🏆 **Merc** | Local inference vs LLM API calls. |
-| **Flexibility** | 🏆 **Hindsight** | LLM extraction adapts to any content. Merc limited to 26 labels. |
-| **Data preservation** | 🏆 **Hindsight** | Never loses potentially valuable content. Merc may over-filter. |
-| **Interpretability** | 🏆 **Merc** | Clear scores and thresholds. Hindsight's LLM is a black box. |
+| **Storage efficiency** | **Merc** | Only stores important content. Hindsight stores everything. |
+| **Write latency** | **Merc** | Single local model (~50ms) vs LLM extraction (~500ms+). |
+| **Write cost** | **Merc** | Local inference vs LLM API calls. |
+| **Flexibility** | **Hindsight** | LLM extraction adapts to any content. Merc limited to 26 labels. |
+| **Data preservation** | **Hindsight** | Never loses potentially valuable content. Merc may over-filter. |
+| **Interpretability** | **Merc** | Clear scores and thresholds. Hindsight's LLM is a black box. |
 
 **Architectural Philosophy:**
 

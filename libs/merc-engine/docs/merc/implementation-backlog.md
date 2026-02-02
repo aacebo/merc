@@ -1,6 +1,6 @@
 # Merc Scoring Backlog
 
-Implementation tasks for scoring improvements. See [MERC_IMPROVEMENTS.md](./MERC_IMPROVEMENTS.md) for detailed rationale.
+Implementation tasks for scoring improvements. See [improvement-proposals.md](./improvement-proposals.md) for detailed rationale.
 
 ---
 
