@@ -12,8 +12,12 @@ repository.workspace = true
 doctest = false
 
 [features]
-tokio = ["dep:tokio"]
+tokio = ["dep:tokio", "dep:futures"]
 
 [dependencies]
 async-trait = { workspace = true }
-tokio = { workspace = true, features = ["sync"], optional = true }
+futures = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["sync", "rt", "time"], optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["sync", "rt", "time", "macros", "rt-multi-thread"] }

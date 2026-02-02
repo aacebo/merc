@@ -1,22 +1,29 @@
 use std::{any::type_name_of_val, time::Duration};
 
-use async_trait::async_trait;
 use tokio::sync::mpsc;
 
 use crate::chan::{Channel, Sender, Status, error::SendError};
 
-#[derive(Debug, Clone)]
-pub struct TokioSender<T: std::fmt::Debug> {
+#[derive(Clone)]
+pub struct TokioSender<T> {
     sender: MpscSender<T>,
 }
 
-impl<T: std::fmt::Debug> TokioSender<T> {
+impl<T> std::fmt::Debug for TokioSender<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TokioSender")
+            .field("sender", &self.sender)
+            .finish()
+    }
+}
+
+impl<T> TokioSender<T> {
     pub fn new(sender: MpscSender<T>) -> Self {
         Self { sender }
     }
 }
 
-impl<T: std::fmt::Debug> std::ops::Deref for TokioSender<T> {
+impl<T> std::ops::Deref for TokioSender<T> {
     type Target = MpscSender<T>;
 
     fn deref(&self) -> &Self::Target {
@@ -24,7 +31,7 @@ impl<T: std::fmt::Debug> std::ops::Deref for TokioSender<T> {
     }
 }
 
-impl<T: std::fmt::Debug> Channel for TokioSender<T> {
+impl<T> Channel for TokioSender<T> {
     fn status(&self) -> Status {
         self.sender.status()
     }
@@ -38,20 +45,11 @@ impl<T: std::fmt::Debug> Channel for TokioSender<T> {
     }
 }
 
-#[async_trait]
-impl<T: std::fmt::Debug + Send + 'static> Sender for TokioSender<T> {
+impl<T: Send + 'static> Sender for TokioSender<T> {
     type Item = T;
 
-    async fn send(&self, item: Self::Item) -> Result<(), SendError> {
-        if let Err(_) = self.sender.reserve().await {
-            if self.status().is_closed() {
-                return Err(SendError::Closed);
-            }
-
-            return Err(SendError::Full);
-        }
-
-        match self.sender.send(item).await {
+    fn send(&self, result: T) -> Result<(), SendError> {
+        match self.sender.block_send(result) {
             Err(_) => {
                 if self.status().is_closed() {
                     Err(SendError::Closed)
@@ -64,13 +62,22 @@ impl<T: std::fmt::Debug + Send + 'static> Sender for TokioSender<T> {
     }
 }
 
-#[derive(Debug)]
-pub enum MpscSender<T: std::fmt::Debug> {
+#[derive(Clone)]
+pub enum MpscSender<T> {
     Bound(mpsc::Sender<T>),
     UnBound(mpsc::UnboundedSender<T>),
 }
 
-impl<T: std::fmt::Debug> MpscSender<T> {
+impl<T> std::fmt::Debug for MpscSender<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bound(_) => write!(f, "MpscSender::Bound(<sender>)"),
+            Self::UnBound(_) => write!(f, "MpscSender::UnBound(<sender>)"),
+        }
+    }
+}
+
+impl<T> MpscSender<T> {
     pub fn status(&self) -> Status {
         if self.is_closed() {
             Status::Closed
@@ -160,6 +167,13 @@ impl<T: std::fmt::Debug> MpscSender<T> {
         }
     }
 
+    pub fn block_send(&self, value: T) -> Result<(), mpsc::error::SendError<T>> {
+        match self {
+            Self::Bound(v) => v.blocking_send(value),
+            Self::UnBound(v) => v.send(value),
+        }
+    }
+
     pub fn downgrade(&self) -> MpscWeakSender<T>
     where
         T: Clone,
@@ -171,34 +185,34 @@ impl<T: std::fmt::Debug> MpscSender<T> {
     }
 }
 
-impl<T: std::fmt::Debug> Clone for MpscSender<T> {
-    fn clone(&self) -> Self {
-        match self {
-            Self::Bound(v) => v.clone().into(),
-            Self::UnBound(v) => v.clone().into(),
-        }
-    }
-}
-
-impl<T: std::fmt::Debug> From<mpsc::Sender<T>> for MpscSender<T> {
+impl<T> From<mpsc::Sender<T>> for MpscSender<T> {
     fn from(value: mpsc::Sender<T>) -> Self {
         Self::Bound(value)
     }
 }
 
-impl<T: std::fmt::Debug> From<mpsc::UnboundedSender<T>> for MpscSender<T> {
+impl<T> From<mpsc::UnboundedSender<T>> for MpscSender<T> {
     fn from(value: mpsc::UnboundedSender<T>) -> Self {
         Self::UnBound(value)
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum MpscWeakSender<T: std::fmt::Debug> {
+#[derive(Clone)]
+pub enum MpscWeakSender<T> {
     Bound(mpsc::WeakSender<T>),
     UnBound(mpsc::WeakUnboundedSender<T>),
 }
 
-impl<T: std::fmt::Debug> MpscWeakSender<T> {
+impl<T> std::fmt::Debug for MpscWeakSender<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bound(_) => write!(f, "MpscWeakSender::Bound(<weak_sender>)"),
+            Self::UnBound(_) => write!(f, "MpscWeakSender::UnBound(<weak_sender>)"),
+        }
+    }
+}
+
+impl<T> MpscWeakSender<T> {
     pub fn is_bound(&self) -> bool {
         match self {
             Self::Bound(_) => true,
@@ -235,13 +249,13 @@ impl<T: std::fmt::Debug> MpscWeakSender<T> {
     }
 }
 
-impl<T: std::fmt::Debug> From<mpsc::WeakSender<T>> for MpscWeakSender<T> {
+impl<T> From<mpsc::WeakSender<T>> for MpscWeakSender<T> {
     fn from(value: mpsc::WeakSender<T>) -> Self {
         Self::Bound(value)
     }
 }
 
-impl<T: std::fmt::Debug> From<mpsc::WeakUnboundedSender<T>> for MpscWeakSender<T> {
+impl<T> From<mpsc::WeakUnboundedSender<T>> for MpscWeakSender<T> {
     fn from(value: mpsc::WeakUnboundedSender<T>) -> Self {
         Self::UnBound(value)
     }

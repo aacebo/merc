@@ -1,33 +1,28 @@
-use std::{
-    sync::Arc,
-    task::{Context, Poll},
-};
+use std::task::{Context, Poll};
 
-use async_trait::async_trait;
 use tokio::sync::mpsc;
 
 use crate::chan::{Channel, Receiver, Status, error::RecvError};
 
-#[derive(Debug, Clone)]
-pub struct TokioReceiver<T: std::fmt::Debug> {
-    receiver: Arc<MpscReceiver<T>>,
+pub struct TokioReceiver<T> {
+    receiver: MpscReceiver<T>,
 }
 
-impl<T: std::fmt::Debug> TokioReceiver<T> {
-    pub fn new(receiver: Arc<MpscReceiver<T>>) -> Self {
+impl<T> std::fmt::Debug for TokioReceiver<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TokioReceiver")
+            .field("receiver", &self.receiver)
+            .finish()
+    }
+}
+
+impl<T> TokioReceiver<T> {
+    pub fn new(receiver: MpscReceiver<T>) -> Self {
         Self { receiver }
     }
 }
 
-impl<T: std::fmt::Debug> std::ops::Deref for TokioReceiver<T> {
-    type Target = MpscReceiver<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.receiver
-    }
-}
-
-impl<T: std::fmt::Debug> Channel for TokioReceiver<T> {
+impl<T> Channel for TokioReceiver<T> {
     fn status(&self) -> Status {
         self.receiver.status()
     }
@@ -41,34 +36,71 @@ impl<T: std::fmt::Debug> Channel for TokioReceiver<T> {
     }
 }
 
-#[async_trait]
-impl<T: std::fmt::Debug + Send + 'static> Receiver for TokioReceiver<T> {
+impl<T: Send + 'static> Receiver for TokioReceiver<T> {
     type Item = T;
 
-    async fn recv(&self) -> Result<Self::Item, RecvError> {
-        match self.recv().await {
-            Err(_) => {
+    fn close(&mut self) {
+        if self.receiver.is_closed() {
+            return;
+        }
+
+        while !self.receiver.is_empty() {
+            let _ = self.receiver.recv();
+        }
+
+        self.receiver.close();
+    }
+
+    fn recv(&mut self) -> Result<Self::Item, RecvError> {
+        match self.receiver.block_recv() {
+            None => {
                 if self.status().is_closed() {
                     Err(RecvError::Closed)
                 } else {
                     Err(RecvError::Empty)
                 }
             }
-            Ok(v) => Ok(v),
+            Some(v) => Ok(v),
+        }
+    }
+
+    fn recv_poll(&mut self, cx: &mut Context<'_>) -> Poll<Result<Self::Item, RecvError>> {
+        match self.receiver.poll_recv(cx) {
+            Poll::Pending => Poll::Pending,
+            Poll::Ready(v) => Poll::Ready(match v {
+                None => {
+                    if self.status().is_closed() {
+                        Err(RecvError::Closed)
+                    } else {
+                        Err(RecvError::Empty)
+                    }
+                }
+                Some(v) => Ok(v),
+            }),
         }
     }
 }
 
-#[derive(Debug)]
-pub enum MpscReceiver<T: std::fmt::Debug> {
+pub enum MpscReceiver<T> {
     Bound(mpsc::Receiver<T>),
     UnBound(mpsc::UnboundedReceiver<T>),
 }
 
-impl<T: std::fmt::Debug> MpscReceiver<T> {
+impl<T> std::fmt::Debug for MpscReceiver<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bound(_) => write!(f, "MpscReceiver::Bound(<receiver>)"),
+            Self::UnBound(_) => write!(f, "MpscReceiver::UnBound(<receiver>)"),
+        }
+    }
+}
+
+impl<T> MpscReceiver<T> {
     pub fn status(&self) -> Status {
-        if self.is_closed() {
+        if self.is_closed() && self.is_empty() {
             Status::Closed
+        } else if self.is_closed() && !self.is_empty() {
+            Status::Draining
         } else {
             Status::Open
         }
@@ -173,13 +205,13 @@ impl<T: std::fmt::Debug> MpscReceiver<T> {
     }
 }
 
-impl<T: std::fmt::Debug> From<mpsc::Receiver<T>> for MpscReceiver<T> {
+impl<T> From<mpsc::Receiver<T>> for MpscReceiver<T> {
     fn from(value: mpsc::Receiver<T>) -> Self {
         Self::Bound(value)
     }
 }
 
-impl<T: std::fmt::Debug> From<mpsc::UnboundedReceiver<T>> for MpscReceiver<T> {
+impl<T> From<mpsc::UnboundedReceiver<T>> for MpscReceiver<T> {
     fn from(value: mpsc::UnboundedReceiver<T>) -> Self {
         Self::UnBound(value)
     }
