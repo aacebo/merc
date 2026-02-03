@@ -17,4 +17,28 @@ pub use map::*;
 pub use media_type::*;
 pub use options::*;
 
-pub struct Runtime {}
+pub struct Runtime {
+    data_sources: Vec<Box<dyn DataSource>>,
+}
+
+#[derive(Default)]
+pub struct Builder {
+    data_sources: Vec<Box<dyn DataSource>>,
+}
+
+impl Builder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn data_source<T: DataSource + 'static>(mut self, source: T) -> Self {
+        self.data_sources.push(Box::new(source));
+        self
+    }
+
+    pub fn build(self) -> Runtime {
+        Runtime {
+            data_sources: self.data_sources,
+        }
+    }
+}
