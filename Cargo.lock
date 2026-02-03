@@ -2116,9 +2116,11 @@ version = "0.0.1"
 name = "merc-runtime"
 version = "0.0.1"
 dependencies = [
+ "async-trait",
  "chrono",
  "console",
  "merc-error",
+ "merc-sync",
  "rust-bert",
  "serde",
  "serde_json",

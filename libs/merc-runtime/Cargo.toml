@@ -13,12 +13,16 @@ doctest = false
 
 [features]
 int = []
+tokio = ["merc-sync/tokio"]
 
 [dependencies]
+async-trait = { workspace = true }
 rust-bert = { version = "0.23" }
 tch = { version = "0.17" }
 console = { version = "0.16", features = ["std"] }
 chrono = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+
 merc-error = { workspace = true }
+merc-sync = { workspace = true }

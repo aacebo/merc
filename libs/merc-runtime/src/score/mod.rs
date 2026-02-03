@@ -9,29 +9,25 @@ pub use label::*;
 pub use options::*;
 pub use result::*;
 
-use crate::threshold;
+use crate::{pipe, threshold};
 
 use rust_bert::pipelines::zero_shot_classification;
 
 use merc_error::{Error, ErrorCode};
 
-use crate::{Context, Layer, LayerResult};
+use crate::{Context, LayerResult};
 
 pub struct ScoreLayer {
     model: zero_shot_classification::ZeroShotClassificationModel,
 }
 
 impl ScoreLayer {
-    /// Compute effective threshold based on text length.
-    /// Short text (<= 20 chars) gets a lower threshold (easier to accept).
-    /// Long text (> 200 chars) gets a higher threshold (harder to accept).
-    pub fn threshold_of(&self, text: &str) -> f32 {
-        threshold!(text)
-    }
-}
-
-impl Layer for ScoreLayer {
-    fn invoke(&self, ctx: &Context) -> merc_error::Result<LayerResult> {
+    /// Invoke the score layer directly with a context reference.
+    /// This is useful for benchmarking and other cases where you need to reuse the layer.
+    pub fn invoke<Input>(
+        &self,
+        ctx: Context<Input>,
+    ) -> merc_error::Result<LayerResult<ScoreResult>> {
         let started_at = chrono::Utc::now();
         let mut result = LayerResult::new(ScoreResult::new(vec![
             LabelCategory::Sentiment.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
@@ -40,18 +36,16 @@ impl Layer for ScoreLayer {
             LabelCategory::Context.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
         ]));
 
-        let score = result.data::<ScoreResult>();
-        let effective_threshold = self.threshold_of(&ctx.text);
+        let effective_threshold = threshold!(&ctx.text);
 
-        if score.score < effective_threshold
-            || score.label_score(ContextLabel::Phatic.into()) >= 0.8
+        if result.output.score < effective_threshold
+            || result.output.label_score(ContextLabel::Phatic.into()) >= 0.8
         {
             return Err(Error::builder()
                 .code(ErrorCode::Cancel)
                 .message(&format!(
                     "score {} is less than minimum threshold {}",
-                    result.data::<ScoreResult>().score,
-                    effective_threshold
+                    result.output.score, effective_threshold
                 ))
                 .build());
         }
@@ -78,20 +72,28 @@ impl Layer for ScoreLayer {
     }
 }
 
+impl<Input: 'static> pipe::Operator<Context<Input>> for ScoreLayer {
+    type Output = merc_error::Result<LayerResult<ScoreResult>>;
+
+    fn apply(self, src: pipe::Source<Context<Input>>) -> pipe::Source<Self::Output> {
+        pipe::Source::new(move || self.invoke(src.run()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "int")]
     use merc_error::{ErrorCode, Result};
 
     #[cfg(feature = "int")]
-    use crate::{Context, Layer, score::ScoreOptions};
+    use crate::{Context, pipe::Source, score::ScoreOptions};
 
     #[cfg(feature = "int")]
     #[test]
     fn should_cancel() -> Result<()> {
         let layer = ScoreOptions::new().build()?;
-        let mut context = Context::new("hi how are you?");
-        let res = layer.invoke(&mut context);
+        let context = Context::new("hi how are you?", ());
+        let res = Source::from(context).pipe(layer).run();
 
         if let Ok(v) = &res {
             println!("{:#?}", v);
@@ -106,8 +108,8 @@ mod tests {
     #[test]
     fn should_be_stressed() -> Result<()> {
         let layer = ScoreOptions::new().build()?;
-        let mut context = Context::new("oh my god, I'm going to be late for work!");
-        let res = layer.invoke(&mut context)?;
+        let context = Context::new("oh my god, I'm going to be late for work!", ());
+        let res = Source::from(context).pipe(layer).run()?;
 
         println!("{:#?}", &res);
         Ok(())

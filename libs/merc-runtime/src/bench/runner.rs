@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::Context;
 use crate::score::{Label, ScoreLayer, ScoreOptions, ScoreResult};
-use crate::{Context, Layer};
 
 use super::dataset::{BenchDataset, BenchSample, Category, Decision};
 
@@ -209,14 +209,13 @@ where
 }
 
 fn evaluate_sample(sample: &BenchSample, layer: &ScoreLayer) -> SampleResult {
-    let ctx = Context::new(&sample.text);
-    let invoke_result = layer.invoke(&ctx);
+    let ctx = Context::new(&sample.text, ());
+    let invoke_result = layer.invoke(ctx);
 
     let (actual_decision, score, detected_labels) = match invoke_result {
         Ok(layer_result) => {
-            let score_result: &ScoreResult = layer_result.data();
-            let detected = extract_detected_labels(score_result);
-            (Decision::Accept, score_result.score, detected)
+            let detected = extract_detected_labels(&layer_result.output);
+            (Decision::Accept, layer_result.output.score, detected)
         }
         Err(_) => {
             // Rejection (Cancel error code or other error)
@@ -305,7 +304,7 @@ pub fn export_raw_scores(
     let total = dataset.samples.len();
 
     for (i, sample) in dataset.samples.iter().enumerate() {
-        let ctx = Context::new(&sample.text);
+        let ctx = Context::new(&sample.text, ());
         let mut scores = HashMap::new();
 
         // Initialize all labels with 0.0
@@ -314,9 +313,8 @@ pub fn export_raw_scores(
         }
 
         // Run scoring and collect raw scores
-        if let Ok(layer_result) = layer.invoke(&ctx) {
-            let score_result: &ScoreResult = layer_result.data();
-            for score_label in score_result.labels() {
+        if let Ok(layer_result) = layer.invoke(ctx) {
+            for score_label in layer_result.output.labels() {
                 scores.insert(score_label.label.to_string(), score_label.raw_score);
             }
         }

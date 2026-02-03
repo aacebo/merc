@@ -3,6 +3,7 @@ mod context;
 mod layer;
 mod map;
 mod options;
+pub mod pipe;
 pub mod score;
 
 pub use context::*;

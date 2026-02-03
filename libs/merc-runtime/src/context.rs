@@ -1,20 +1,20 @@
 use crate::Map;
 
 #[derive(Debug, Default)]
-pub struct Context {
+pub struct Context<Input> {
     pub meta: Map,
     pub step: usize,
     pub text: String,
-    pub data: Map,
+    pub input: Input,
 }
 
-impl Context {
-    pub fn new(text: &str) -> Self {
+impl<Input> Context<Input> {
+    pub fn new(text: &str, input: Input) -> Self {
         Self {
             meta: Map::default(),
             step: 0,
             text: text.to_string(),
-            data: Map::default(),
+            input,
         }
     }
 }
