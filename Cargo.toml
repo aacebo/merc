@@ -17,7 +17,7 @@ repository = "https://www.github.com/aacebo/merc"
 merc = { path = "./libs/merc", version = "0.0.1" }
 merc-sync = { path = "./libs/merc-sync", version = "0.0.1" }
 merc-error = { path = "./libs/merc-error", version = "0.0.1" }
-merc-engine = { path = "./libs/merc-engine", version = "0.0.1" }
+merc-runtime = { path = "./libs/merc-runtime", version = "0.0.1" }
 
 # crates (private)
 events = { path = "./crates/events", version = "0.0.1" }

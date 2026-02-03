@@ -1,13 +1,11 @@
 pub mod bench;
 mod context;
-mod engine;
 mod layer;
 mod map;
 mod options;
 pub mod score;
 
 pub use context::*;
-pub use engine::*;
 pub use layer::*;
 pub use map::*;
 pub use options::*;

@@ -2093,8 +2093,8 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 name = "merc"
 version = "0.0.1"
 dependencies = [
- "merc-engine",
  "merc-error",
+ "merc-runtime",
  "merc-sync",
 ]
 
@@ -2103,13 +2103,17 @@ name = "merc-cli"
 version = "0.0.1"
 dependencies = [
  "clap",
- "merc-engine",
+ "merc-runtime",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "merc-engine"
+name = "merc-error"
+version = "0.0.1"
+
+[[package]]
+name = "merc-runtime"
 version = "0.0.1"
 dependencies = [
  "chrono",
@@ -2120,10 +2124,6 @@ dependencies = [
  "serde_json",
  "tch",
 ]
-
-[[package]]
-name = "merc-error"
-version = "0.0.1"
 
 [[package]]
 name = "merc-sync"

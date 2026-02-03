@@ -13,11 +13,11 @@ doctest = false
 
 [features]
 error = ["dep:merc-error"]
-engine = ["dep:merc-engine"]
+runtime = ["dep:merc-runtime"]
 sync = ["dep:merc-sync"]
 tokio = ["merc-sync/tokio"]
 
 [dependencies]
 merc-error = { workspace = true, optional = true }
-merc-engine = { workspace = true, optional = true }
+merc-runtime = { workspace = true, optional = true }
 merc-sync = { workspace = true, optional = true }

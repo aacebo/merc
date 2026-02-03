@@ -3,8 +3,8 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 use clap::Subcommand;
-use merc_engine::bench::{BenchDataset, Category, RawScoreExport};
-use merc_engine::score::ScoreOptions;
+use merc_runtime::bench::{BenchDataset, Category, RawScoreExport};
+use merc_runtime::score::ScoreOptions;
 
 #[derive(Subcommand)]
 pub enum BenchAction {
@@ -76,7 +76,7 @@ fn run_benchmark(path: &PathBuf, verbose: bool) {
     println!("\nRunning benchmark...\n");
 
     let total = dataset.samples.len();
-    let result = match merc_engine::bench::run_with_options_and_progress(&dataset, options, |p| {
+    let result = match merc_runtime::bench::run_with_options_and_progress(&dataset, options, |p| {
         let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
         let bar_width = 30;
         let filled = pct * bar_width / 100;
@@ -297,7 +297,7 @@ fn extract_scores(path: &PathBuf, output: &PathBuf) {
     println!("\nExtracting raw scores...\n");
 
     let total = dataset.samples.len();
-    let export = match merc_engine::bench::export_raw_scores_with_options(&dataset, options, |p| {
+    let export = match merc_runtime::bench::export_raw_scores_with_options(&dataset, options, |p| {
         let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
         let bar_width = 30;
         let filled = pct * bar_width / 100;
@@ -363,7 +363,7 @@ fn train_platt(path: &PathBuf, output: &PathBuf, generate_rust: bool) {
     println!("Loaded {} samples", export.samples.len());
     println!("\nTraining Platt parameters...");
 
-    let result = merc_engine::bench::train_platt_params(&export);
+    let result = merc_runtime::bench::train_platt_params(&export);
 
     // Display results
     println!("\n=== Training Results ===\n");
@@ -405,7 +405,7 @@ fn train_platt(path: &PathBuf, output: &PathBuf, generate_rust: bool) {
     println!("\nParameters written to {:?}", output);
 
     if generate_rust {
-        let rust_code = merc_engine::bench::generate_rust_code(&result);
+        let rust_code = merc_runtime::bench::generate_rust_code(&result);
         println!("\n=== Rust Code ===\n");
         println!("{}", rust_code);
     }

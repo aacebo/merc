@@ -3,9 +3,9 @@ pub mod error {
     pub use merc_error::*;
 }
 
-#[cfg(feature = "engine")]
-pub mod engine {
-    pub use merc_engine::*;
+#[cfg(feature = "runtime")]
+pub mod runtime {
+    pub use merc_runtime::*;
 }
 
 #[cfg(feature = "sync")]

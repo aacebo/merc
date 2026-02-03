@@ -1,6 +1,6 @@
 # merc-cli
 
-Command-line interface for the Merc scoring engine.
+Command-line interface for the Merc scoring runtime.
 
 ## Installation
 
@@ -30,8 +30,8 @@ Options:
 
 Example:
 ```bash
-merc bench run libs/merc-engine/benches/dataset.json
-merc bench run libs/merc-engine/benches/dataset.json --threshold 0.80 --dynamic
+merc bench run datasets/dataset.json
+merc bench run datasets/dataset.json --threshold 0.80 --dynamic
 ```
 
 #### `bench validate` - Validate a benchmark dataset
@@ -63,5 +63,5 @@ Displays:
 
 Run with cargo:
 ```bash
-cargo run --package merc-cli -- bench run libs/merc-engine/benches/dataset.json
+cargo run --package merc-cli -- bench run datasets/dataset.json
 ```
