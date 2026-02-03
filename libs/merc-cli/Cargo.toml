@@ -1,5 +1,5 @@
 [package]
-name = "merc-engine"
+name = "merc-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,13 +8,12 @@ documentation.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
-[lib]
-doctest = false
+[[bin]]
+name = "merc"
+path = "src/main.rs"
 
 [dependencies]
-rust-bert = { version = "0.23" }
-console = { version = "0.16", features = ["std"] }
-chrono = { workspace = true }
+clap = { version = "4", features = ["derive"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-merc-error = { workspace = true }
+merc-engine = { workspace = true }

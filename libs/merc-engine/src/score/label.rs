@@ -212,9 +212,15 @@ impl SentimentLabel {
 
     pub fn hypothesis(&self) -> &'static str {
         match self {
-            Self::Positive => "The speaker is expressing a positive, happy, or optimistic sentiment.",
-            Self::Negative => "The speaker is expressing a negative, unhappy, or pessimistic sentiment.",
-            Self::Neutral => "The speaker is expressing a neutral or matter-of-fact sentiment without strong emotion.",
+            Self::Positive => {
+                "The speaker is expressing a positive, happy, or optimistic sentiment."
+            }
+            Self::Negative => {
+                "The speaker is expressing a negative, unhappy, or pessimistic sentiment."
+            }
+            Self::Neutral => {
+                "The speaker is expressing a neutral or matter-of-fact sentiment without strong emotion."
+            }
         }
     }
 
@@ -300,10 +306,16 @@ impl EmotionLabel {
         match self {
             Self::Joy => "The speaker is feeling joyful, happy, or excited about something.",
             Self::Fear => "The speaker is feeling afraid, anxious, or worried about something.",
-            Self::Shame => "The speaker is feeling ashamed, embarrassed, or guilty about something.",
-            Self::Pride => "The speaker is feeling proud, accomplished, or satisfied with an achievement.",
+            Self::Shame => {
+                "The speaker is feeling ashamed, embarrassed, or guilty about something."
+            }
+            Self::Pride => {
+                "The speaker is feeling proud, accomplished, or satisfied with an achievement."
+            }
             Self::Stress => "The speaker is feeling stressed, overwhelmed, or under pressure.",
-            Self::Anger => "The speaker is feeling angry, frustrated, or irritated about something.",
+            Self::Anger => {
+                "The speaker is feeling angry, frustrated, or irritated about something."
+            }
             Self::Sad => "The speaker is feeling sad, upset, or grieving about something.",
         }
     }
@@ -402,12 +414,22 @@ impl OutcomeLabel {
     pub fn hypothesis(&self) -> &'static str {
         match self {
             Self::Success => "The speaker is describing a success, achievement, or accomplishment.",
-            Self::Failure => "The speaker is describing a failure, setback, or something that went wrong.",
-            Self::Reward => "The speaker is describing receiving a reward, benefit, or positive outcome.",
-            Self::Punishment => "The speaker is describing a punishment, penalty, or negative consequence.",
+            Self::Failure => {
+                "The speaker is describing a failure, setback, or something that went wrong."
+            }
+            Self::Reward => {
+                "The speaker is describing receiving a reward, benefit, or positive outcome."
+            }
+            Self::Punishment => {
+                "The speaker is describing a punishment, penalty, or negative consequence."
+            }
             Self::Decision => "The speaker has made or is announcing a decision or choice.",
-            Self::Progress => "The speaker is describing progress, completion, or forward movement on something.",
-            Self::Conflict => "The speaker is describing a disagreement, conflict, argument, or interpersonal tension.",
+            Self::Progress => {
+                "The speaker is describing progress, completion, or forward movement on something."
+            }
+            Self::Conflict => {
+                "The speaker is describing a disagreement, conflict, argument, or interpersonal tension."
+            }
         }
     }
 
@@ -508,15 +530,29 @@ impl ContextLabel {
 
     pub fn hypothesis(&self) -> &'static str {
         match self {
-            Self::Fact => "The speaker is stating a factual piece of information that should be remembered.",
+            Self::Fact => {
+                "The speaker is stating a factual piece of information that should be remembered."
+            }
             Self::Time => "The speaker is mentioning a specific time, date, or deadline.",
             Self::Place => "The speaker is mentioning a specific location, place, or address.",
-            Self::Entity => "The speaker is mentioning a specific named person, organization, or entity.",
-            Self::Phatic => "This is just social pleasantry, small talk, or acknowledgment with no substantive information.",
-            Self::Preference => "The speaker is expressing a personal preference, like, dislike, or opinion.",
-            Self::Plan => "The speaker is describing a plan, intention, or commitment to do something.",
-            Self::Goal => "The speaker is describing a goal, objective, aspiration, or something they want to achieve.",
-            Self::Task => "The speaker is describing something they need to do, remember, or a task to complete.",
+            Self::Entity => {
+                "The speaker is mentioning a specific named person, organization, or entity."
+            }
+            Self::Phatic => {
+                "This is just social pleasantry, small talk, or acknowledgment with no substantive information."
+            }
+            Self::Preference => {
+                "The speaker is expressing a personal preference, like, dislike, or opinion."
+            }
+            Self::Plan => {
+                "The speaker is describing a plan, intention, or commitment to do something."
+            }
+            Self::Goal => {
+                "The speaker is describing a goal, objective, aspiration, or something they want to achieve."
+            }
+            Self::Task => {
+                "The speaker is describing something they need to do, remember, or a task to complete."
+            }
         }
     }
 
@@ -605,5 +641,99 @@ impl std::fmt::Display for ContextLabel {
             Self::Goal => write!(f, "goal"),
             Self::Task => write!(f, "task"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // === Label Parameter Validation Tests ===
+
+    #[test]
+    fn all_labels_have_identity_platt_params() {
+        for label in Label::all() {
+            assert!(
+                (label.platt_a() - 1.0).abs() < f32::EPSILON,
+                "Label {} should have platt_a=1.0, got {}",
+                label,
+                label.platt_a()
+            );
+            assert!(
+                label.platt_b().abs() < f32::EPSILON,
+                "Label {} should have platt_b=0.0, got {}",
+                label,
+                label.platt_b()
+            );
+        }
+    }
+
+    #[test]
+    fn all_labels_have_valid_threshold() {
+        for label in Label::all() {
+            let threshold = label.threshold();
+            assert!(
+                threshold >= 0.5 && threshold <= 1.0,
+                "Label {} has invalid threshold {}",
+                label,
+                threshold
+            );
+        }
+    }
+
+    #[test]
+    fn all_labels_have_valid_weight() {
+        for label in Label::all() {
+            let weight = label.weight();
+            assert!(
+                weight > 0.0 && weight <= 1.0,
+                "Label {} has invalid weight {}",
+                label,
+                weight
+            );
+        }
+    }
+
+    #[test]
+    fn all_labels_have_hypothesis() {
+        for label in Label::all() {
+            let hypothesis = label.hypothesis();
+            assert!(
+                !hypothesis.is_empty(),
+                "Label {} has empty hypothesis",
+                label
+            );
+            assert!(
+                hypothesis.len() > 10,
+                "Label {} has suspiciously short hypothesis: '{}'",
+                label,
+                hypothesis
+            );
+        }
+    }
+
+    #[test]
+    fn sentiment_labels_count() {
+        assert_eq!(Label::sentiment().len(), 3);
+    }
+
+    #[test]
+    fn emotion_labels_count() {
+        assert_eq!(Label::emotion().len(), 7);
+    }
+
+    #[test]
+    fn outcome_labels_count() {
+        assert_eq!(Label::outcome().len(), 7);
+    }
+
+    #[test]
+    fn context_labels_count() {
+        assert_eq!(Label::context().len(), 9);
+    }
+
+    #[test]
+    fn total_labels_count() {
+        assert_eq!(Label::all().len(), 26);
     }
 }

@@ -1,0 +1,1024 @@
+{
+  "version": "1.0.0",
+  "created": "2026-02-02",
+  "samples": [
+    {
+      "id": "task-001",
+      "text": "I need to finish the quarterly report by end of day",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "time"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-002",
+      "text": "Remember to call Mom on her birthday next Tuesday",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "time", "entity"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-003",
+      "text": "I have to pick up the dry cleaning before 6pm",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "time", "place"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-004",
+      "text": "We should schedule that meeting with the design team",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "entity"],
+      "primary_category": "task",
+      "difficulty": "medium"
+    },
+    {
+      "id": "task-005",
+      "text": "Don't forget to submit the expense report by Friday",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "time"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-006",
+      "text": "I'll prepare the presentation slides tonight",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "time", "plan"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-007",
+      "text": "Need to review the contract before signing",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task"],
+      "primary_category": "task",
+      "difficulty": "medium"
+    },
+    {
+      "id": "task-008",
+      "text": "Make sure to back up the database before migration",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task"],
+      "primary_category": "task",
+      "difficulty": "medium"
+    },
+    {
+      "id": "task-009",
+      "text": "I have three meetings scheduled for tomorrow morning",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "time", "fact"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-010",
+      "text": "We need to update the API documentation this week",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "time"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-011",
+      "text": "Remember to water the plants while I'm away",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-012",
+      "text": "I'll handle the code review for the new feature",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "plan"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-013",
+      "text": "Book the conference room for 2pm on Thursday",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "time", "place"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "task-014",
+      "text": "Follow up with the client about their feedback",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task", "entity"],
+      "primary_category": "task",
+      "difficulty": "medium"
+    },
+    {
+      "id": "task-015",
+      "text": "I should reorganize my notes before the exam",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["task"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-001",
+      "text": "I'm so stressed about the upcoming deadline",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["stress", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-002",
+      "text": "I'm absolutely thrilled about getting the promotion!",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["joy", "positive", "success"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-003",
+      "text": "I'm really worried about the test results",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fear", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-004",
+      "text": "I feel so embarrassed about what happened at the meeting",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["shame", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-005",
+      "text": "I'm really proud of how the team handled the crisis",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["pride", "positive", "success"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-006",
+      "text": "This situation is making me so angry",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["anger", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-007",
+      "text": "I'm feeling really down today after hearing the news",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["sad", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-008",
+      "text": "I can't believe how nervous I am about the interview",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fear", "stress", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-009",
+      "text": "I'm so excited about the vacation next month!",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["joy", "positive", "time"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-010",
+      "text": "The pressure at work is really getting to me",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["stress", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "medium"
+    },
+    {
+      "id": "emotional-011",
+      "text": "I'm furious about how they handled the situation",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["anger", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-012",
+      "text": "I feel accomplished after finishing the marathon",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["pride", "positive", "success"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-013",
+      "text": "I'm heartbroken about the relationship ending",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["sad", "negative"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "emotional-014",
+      "text": "I feel mortified after making that mistake in public",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["shame", "negative", "failure"],
+      "primary_category": "emotional",
+      "difficulty": "medium"
+    },
+    {
+      "id": "emotional-015",
+      "text": "I'm overjoyed that the project was approved",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["joy", "positive", "success"],
+      "primary_category": "emotional",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-001",
+      "text": "The meeting is scheduled for 3pm in Conference Room B",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "time", "place"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-002",
+      "text": "John Smith is the new project manager starting Monday",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "entity", "time"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-003",
+      "text": "The server went down at 2:15am last night",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "time"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-004",
+      "text": "We closed the deal worth $2.5 million yesterday",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "success", "time"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-005",
+      "text": "The headquarters is located in San Francisco",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "place"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-006",
+      "text": "Our team consists of 12 engineers and 3 designers",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "entity"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-007",
+      "text": "The product launched in Q3 of last year",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "time"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-008",
+      "text": "Sarah resigned from her position effective immediately",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "entity"],
+      "primary_category": "factual",
+      "difficulty": "medium"
+    },
+    {
+      "id": "factual-009",
+      "text": "The budget for this quarter is $500,000",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "time"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-010",
+      "text": "The office will be closed for renovations next week",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "time", "place"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-011",
+      "text": "The API rate limit is 1000 requests per minute",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-012",
+      "text": "We received 150 applications for the position",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-013",
+      "text": "The train departs at 7:45am from Platform 3",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "time", "place"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-014",
+      "text": "The contract expires on December 31st",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "time"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "factual-015",
+      "text": "The company was founded in 2015 by three engineers",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["fact", "time", "entity"],
+      "primary_category": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-001",
+      "text": "I prefer working remotely over going to the office",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-002",
+      "text": "I really enjoy Python more than Java for this kind of work",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "positive"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-003",
+      "text": "I'd rather have the meeting in the morning",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "time"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-004",
+      "text": "I hate when people are late to meetings",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "negative", "anger"],
+      "primary_category": "preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "preference-005",
+      "text": "I love the new design direction we're taking",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "positive", "joy"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-006",
+      "text": "Coffee is essential for my morning productivity",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference"],
+      "primary_category": "preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "preference-007",
+      "text": "I find the new tool much more intuitive than the old one",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "positive"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-008",
+      "text": "I'm not a fan of the open office layout",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "negative"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-009",
+      "text": "I think agile methodology works better for our team",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference"],
+      "primary_category": "preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "preference-010",
+      "text": "Slack is my preferred communication tool",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-011",
+      "text": "I enjoy collaborative work more than solo projects",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "positive"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-012",
+      "text": "Dark mode is definitely better for coding at night",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-013",
+      "text": "I dislike lengthy email threads for decision making",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "negative"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-014",
+      "text": "TypeScript is much better than plain JavaScript for large projects",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "preference-015",
+      "text": "I appreciate when code is well documented",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "positive"],
+      "primary_category": "preference",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-001",
+      "text": "I've decided to accept the job offer",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-002",
+      "text": "We're going with option A for the architecture",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-003",
+      "text": "After careful consideration, I'm choosing the smaller apartment",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "place"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-004",
+      "text": "We've decided to postpone the launch until Q2",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "time"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-005",
+      "text": "I'm going to take the promotion even though it means relocating",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "conflict"],
+      "primary_category": "decision",
+      "difficulty": "medium"
+    },
+    {
+      "id": "decision-006",
+      "text": "The team voted to use React for the frontend",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "entity"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-007",
+      "text": "I've made up my mind to learn Rust this year",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "goal", "time"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-008",
+      "text": "We're pivoting the product strategy based on user feedback",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "progress"],
+      "primary_category": "decision",
+      "difficulty": "medium"
+    },
+    {
+      "id": "decision-009",
+      "text": "I chose not to pursue the partnership opportunity",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-010",
+      "text": "After the analysis, we're moving forward with the microservices approach",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "progress"],
+      "primary_category": "decision",
+      "difficulty": "medium"
+    },
+    {
+      "id": "decision-011",
+      "text": "I've concluded that we should hire two more developers",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-012",
+      "text": "The board approved the new pricing model",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "entity"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-013",
+      "text": "I'm committing to a daily exercise routine",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "goal"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-014",
+      "text": "We settled on Monday as the best day for team syncs",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "time"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "decision-015",
+      "text": "I'm going to start documenting my code more thoroughly",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["decision", "goal"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-001",
+      "text": "Hey, how's it going?",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-002",
+      "text": "Thanks!",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-003",
+      "text": "Got it, thanks",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-004",
+      "text": "No problem!",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-005",
+      "text": "Hi there!",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-006",
+      "text": "Good morning",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-007",
+      "text": "See you later!",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-008",
+      "text": "Sounds good",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-009",
+      "text": "OK",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-010",
+      "text": "Sure thing",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-011",
+      "text": "Have a nice day!",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-012",
+      "text": "You're welcome",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-013",
+      "text": "Cool",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-014",
+      "text": "Great, thanks",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "phatic-015",
+      "text": "Bye!",
+      "context": null,
+      "expected_decision": "reject",
+      "expected_labels": ["phatic"],
+      "primary_category": "phatic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "ambiguous-001",
+      "text": "I might go to the gym later",
+      "context": "What are your plans for today?",
+      "expected_decision": "accept",
+      "expected_labels": ["plan", "place"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Tentative plan - borderline accept"
+    },
+    {
+      "id": "ambiguous-002",
+      "text": "We could try that new restaurant sometime",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["plan", "place"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Vague suggestion - borderline"
+    },
+    {
+      "id": "ambiguous-003",
+      "text": "I think the project is going okay",
+      "context": "How's the project coming along?",
+      "expected_decision": "accept",
+      "expected_labels": ["progress", "neutral"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Neutral progress update"
+    },
+    {
+      "id": "ambiguous-004",
+      "text": "Maybe we should reconsider our approach",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["conflict"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Subtle disagreement"
+    },
+    {
+      "id": "ambiguous-005",
+      "text": "That's interesting",
+      "context": "I think we should pivot to mobile-first",
+      "expected_decision": "reject",
+      "expected_labels": ["phatic", "neutral"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Non-committal response"
+    },
+    {
+      "id": "ambiguous-006",
+      "text": "It's fine, I guess",
+      "context": "What do you think of the new design?",
+      "expected_decision": "accept",
+      "expected_labels": ["preference", "neutral"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Lukewarm opinion"
+    },
+    {
+      "id": "ambiguous-007",
+      "text": "We'll see how it goes",
+      "context": "Are you confident about the launch?",
+      "expected_decision": "accept",
+      "expected_labels": ["fear", "neutral"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Uncertainty expression"
+    },
+    {
+      "id": "ambiguous-008",
+      "text": "Not bad",
+      "context": "How was your weekend?",
+      "expected_decision": "reject",
+      "expected_labels": ["phatic", "neutral"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Conversational filler"
+    },
+    {
+      "id": "ambiguous-009",
+      "text": "I suppose that could work",
+      "context": "Should we use Docker for deployment?",
+      "expected_decision": "accept",
+      "expected_labels": ["preference"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Hesitant agreement"
+    },
+    {
+      "id": "ambiguous-010",
+      "text": "Let me think about it",
+      "context": "Can you take on this new project?",
+      "expected_decision": "accept",
+      "expected_labels": ["task"],
+      "primary_category": "ambiguous",
+      "difficulty": "hard",
+      "notes": "Deferred decision - still relevant"
+    },
+    {
+      "id": "outcome-001",
+      "text": "We successfully deployed the new feature to production",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["success", "progress", "positive"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "outcome-002",
+      "text": "The build failed again due to dependency issues",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["failure", "negative"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "outcome-003",
+      "text": "I got a bonus for exceeding my quarterly targets",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["reward", "success", "positive"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "outcome-004",
+      "text": "The client rejected our proposal and went with a competitor",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["failure", "punishment", "negative"],
+      "primary_category": "decision",
+      "difficulty": "medium"
+    },
+    {
+      "id": "outcome-005",
+      "text": "We're making good progress on the migration project",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["progress", "positive"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "goal-001",
+      "text": "My goal is to become a senior engineer by next year",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["goal", "time"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "goal-002",
+      "text": "We're aiming to reduce page load time by 50%",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["goal"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "goal-003",
+      "text": "I want to learn three new programming languages this year",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["goal", "time"],
+      "primary_category": "decision",
+      "difficulty": "easy"
+    },
+    {
+      "id": "plan-001",
+      "text": "I'm planning to refactor the authentication module next sprint",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["plan", "time", "task"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "plan-002",
+      "text": "We're going to migrate to the cloud over the next six months",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["plan", "time"],
+      "primary_category": "task",
+      "difficulty": "easy"
+    },
+    {
+      "id": "conflict-001",
+      "text": "There's a disagreement about whether to use SQL or NoSQL",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["conflict"],
+      "primary_category": "decision",
+      "difficulty": "medium"
+    },
+    {
+      "id": "conflict-002",
+      "text": "The design team and engineering have different priorities",
+      "context": null,
+      "expected_decision": "accept",
+      "expected_labels": ["conflict", "entity"],
+      "primary_category": "decision",
+      "difficulty": "medium"
+    }
+  ]
+}

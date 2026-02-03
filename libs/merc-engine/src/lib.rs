@@ -1,3 +1,4 @@
+pub mod bench;
 mod context;
 mod engine;
 mod layer;
