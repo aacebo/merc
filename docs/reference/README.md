@@ -4,7 +4,7 @@ Research documentation on external memory systems that inform Merc's design.
 
 <pre>
 ├── <a href="../README.md">..</a>
-├── <span><a href="./README.md"><b>6.2 Reference</b></a> 👈</span>
+├── <span><a href="./README.md"><b>▾ 6.2 Reference/</b></a> 👈</span>
 ├── <a href="./1.hindsight.md">6.2.1 Hindsight</a> — Biomimetic agent memory
 ├── <a href="./2.zep.md">6.2.2 Zep</a> — Knowledge graph memory
 └── <a href="./3.enterprise.md">6.2.3 Enterprise</a> — Enterprise memory patterns

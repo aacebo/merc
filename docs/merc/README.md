@@ -4,9 +4,9 @@ Documentation for the Merc scoring engine—a write-time memory gating system us
 
 <pre>
 ├── <a href="../README.md">..</a>
-├── <span><a href="./README.md"><b>6.1 Merc</b></a> 👈</span>
+├── <span><a href="./README.md"><b>▾ 6.1 Merc/</b></a> 👈</span>
 ├── <a href="./scoring-algorithm.md">6.1.1 Scoring Algorithm</a>
-└── <a href="./roadmap/">6.1.2 Roadmap</a>
+└── <a href="./roadmap/README.md">▸ 6.1.2 Roadmap/</a>
 </pre>
 
 ---

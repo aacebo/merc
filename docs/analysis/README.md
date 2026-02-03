@@ -4,7 +4,7 @@ Comparative analysis of Merc against other memory systems.
 
 <pre>
 ├── <a href="../README.md">..</a>
-├── <span><a href="./README.md"><b>6.3 Analysis</b></a> 👈</span>
+├── <span><a href="./README.md"><b>▾ 6.3 Analysis/</b></a> 👈</span>
 ├── <a href="./1.merc-vs-hindsight.md">6.3.1 Merc vs Hindsight</a>
 ├── <a href="./2.merc-vs-zep.md">6.3.2 Merc vs Zep</a>
 ├── <a href="./3.merc-vs-enterprise.md">6.3.3 Merc vs Enterprise</a>

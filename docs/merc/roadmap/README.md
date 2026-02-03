@@ -4,7 +4,7 @@ Roadmap for improving Merc's write-time scoring accuracy while maintaining <200m
 
 <pre>
 ├── <a href="../README.md">..</a>
-├── <span><a href="./README.md"><b>6.1.2 Roadmap</b></a> 👈</span>
+├── <span><a href="./README.md"><b>▾ 6.1.2 Roadmap/</b></a> 👈</span>
 ├── <a href="./1.foundation.md">6.1.2.1 Foundation</a>
 ├── <a href="./2.labels.md">6.1.2.2 Label Expansion</a>
 ├── <a href="./3.context.md">6.1.2.3 Context & Ensemble</a>

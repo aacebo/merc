@@ -4,10 +4,10 @@ Research documentation for the MERC system.
 
 <pre>
 ├── <a href="../README.md">..</a>
-├── <span><a href="./README.md"><b>6. Research</b></a> 👈</span>
-├── <a href="./merc/README.md">6.1 Merc</a> — Scoring engine documentation
-├── <a href="./reference/README.md">6.2 Reference</a> — External system references
-└── <a href="./analysis/README.md">6.3 Analysis</a> — Comparative analyses
+├── <span><a href="./README.md"><b>▾ 6. Research/</b></a> 👈</span>
+├── <a href="./merc/README.md">▸ 6.1 Merc/</a> — Scoring engine documentation
+├── <a href="./reference/README.md">▸ 6.2 Reference/</a> — External system references
+└── <a href="./analysis/README.md">▸ 6.3 Analysis/</a> — Comparative analyses
 </pre>
 
 ---

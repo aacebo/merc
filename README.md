@@ -11,8 +11,8 @@ This projects goal is to design a memory management system modeled after the hum
 ├── <a href="./docs/3.guards.md">3. Guards</a>
 ├── <a href="./docs/4.recall.md">4. Recall</a>
 ├── <a href="./docs/5.classification.md">5. Classification</a>
-└── <a href="./docs/README.md">6. Research</a>
-    ├── <a href="./docs/merc/README.md">6.1 Merc</a>
-    ├── <a href="./docs/reference/README.md">6.2 Reference</a>
-    └── <a href="./docs/analysis/README.md">6.3 Analysis</a>
+└── <a href="./docs/README.md">▾ 6. Research/</a>
+    ├── <a href="./docs/merc/README.md">▸ 6.1 Merc/</a>
+    ├── <a href="./docs/reference/README.md">▸ 6.2 Reference/</a>
+    └── <a href="./docs/analysis/README.md">▸ 6.3 Analysis/</a>
 </pre>
