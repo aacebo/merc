@@ -129,6 +129,7 @@ impl ScoreCategory {
 pub struct ScoreLabel {
     pub label: Label,
     pub score: f32,
+    pub raw_score: f32,
     pub sentence: usize,
 }
 
@@ -137,11 +138,13 @@ impl ScoreLabel {
         Self {
             label,
             score: 0.0,
+            raw_score: 0.0,
             sentence,
         }
     }
 
     pub fn with_score(mut self, raw_score: f32) -> Self {
+        self.raw_score = raw_score;
         let calibrated = calibrate(raw_score, self.label.platt_a(), self.label.platt_b());
         if calibrated >= self.label.threshold() {
             self.score = calibrated * self.label.weight();

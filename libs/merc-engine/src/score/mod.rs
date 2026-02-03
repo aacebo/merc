@@ -2,11 +2,14 @@ mod category;
 mod label;
 mod options;
 mod result;
+mod threshold;
 
 pub use category::*;
 pub use label::*;
 pub use options::*;
 pub use result::*;
+
+use crate::threshold;
 
 use rust_bert::pipelines::zero_shot_classification;
 
@@ -15,22 +18,15 @@ use merc_error::{Error, ErrorCode};
 use crate::{Context, Layer, LayerResult};
 
 pub struct ScoreLayer {
-    threshold: f32,
-    dynamic_threshold: bool,
     model: zero_shot_classification::ZeroShotClassificationModel,
 }
 
-/// Compute effective threshold based on text length.
-/// Short text (<= 20 chars) gets a lower threshold (easier to accept).
-/// Long text (> 200 chars) gets a higher threshold (harder to accept).
-fn compute_threshold(text: &str, base: f32, dynamic: bool) -> f32 {
-    if !dynamic {
-        return base;
-    }
-    match text.len() {
-        0..=20 => base - 0.05,
-        21..=200 => base,
-        _ => base + 0.05,
+impl ScoreLayer {
+    /// Compute effective threshold based on text length.
+    /// Short text (<= 20 chars) gets a lower threshold (easier to accept).
+    /// Long text (> 200 chars) gets a higher threshold (harder to accept).
+    pub fn threshold_of(&self, text: &str) -> f32 {
+        threshold!(text)
     }
 }
 
@@ -45,8 +41,7 @@ impl Layer for ScoreLayer {
         ]));
 
         let score = result.data::<ScoreResult>();
-        let effective_threshold =
-            compute_threshold(&ctx.text, self.threshold, self.dynamic_threshold);
+        let effective_threshold = self.threshold_of(&ctx.text);
 
         if score.score < effective_threshold
             || score.label_score(ContextLabel::Phatic.into()) >= 0.8
@@ -116,13 +111,11 @@ mod tests {
 
     // === MERC-003: Dynamic Threshold Tests ===
 
-    use super::compute_threshold;
+    use crate::threshold;
 
     #[test]
-    fn compute_threshold_short_text_lowers_threshold() {
-        let short = "hi";
-        let base = 0.75;
-        let result = compute_threshold(short, base, true);
+    fn threshold_short_text_lowers_threshold() {
+        let result: f32 = threshold!("hi");
         assert!(
             (result - 0.70).abs() < f32::EPSILON,
             "Expected 0.70, got {}",
@@ -131,10 +124,9 @@ mod tests {
     }
 
     #[test]
-    fn compute_threshold_medium_text_unchanged() {
-        let medium = "This is a medium length text that has more than twenty characters.";
-        let base = 0.75;
-        let result = compute_threshold(medium, base, true);
+    fn threshold_medium_text_unchanged() {
+        let result: f32 =
+            threshold!("This is a medium length text that has more than twenty characters.");
         assert!(
             (result - 0.75).abs() < f32::EPSILON,
             "Expected 0.75, got {}",
@@ -143,10 +135,9 @@ mod tests {
     }
 
     #[test]
-    fn compute_threshold_long_text_raises_threshold() {
+    fn threshold_long_text_raises_threshold() {
         let long = "x".repeat(250);
-        let base = 0.75;
-        let result = compute_threshold(&long, base, true);
+        let result: f32 = threshold!(&long);
         assert!(
             (result - 0.80).abs() < f32::EPSILON,
             "Expected 0.80, got {}",
@@ -155,22 +146,10 @@ mod tests {
     }
 
     #[test]
-    fn compute_threshold_disabled_returns_base() {
-        let short = "hi";
-        let medium = "This is medium text here.";
-        let long = "x".repeat(250);
-        let base = 0.75;
-
-        assert!((compute_threshold(short, base, false) - base).abs() < f32::EPSILON);
-        assert!((compute_threshold(medium, base, false) - base).abs() < f32::EPSILON);
-        assert!((compute_threshold(&long, base, false) - base).abs() < f32::EPSILON);
-    }
-
-    #[test]
-    fn compute_threshold_boundary_20_chars() {
+    fn threshold_boundary_20_chars() {
         let exactly_20 = "12345678901234567890";
         assert_eq!(exactly_20.len(), 20);
-        let result = compute_threshold(exactly_20, 0.75, true);
+        let result: f32 = threshold!(exactly_20);
         assert!(
             (result - 0.70).abs() < f32::EPSILON,
             "20 chars should be short, expected 0.70, got {}",
@@ -179,10 +158,10 @@ mod tests {
     }
 
     #[test]
-    fn compute_threshold_boundary_21_chars() {
+    fn threshold_boundary_21_chars() {
         let exactly_21 = "123456789012345678901";
         assert_eq!(exactly_21.len(), 21);
-        let result = compute_threshold(exactly_21, 0.75, true);
+        let result: f32 = threshold!(exactly_21);
         assert!(
             (result - 0.75).abs() < f32::EPSILON,
             "21 chars should be medium, expected 0.75, got {}",
@@ -191,9 +170,9 @@ mod tests {
     }
 
     #[test]
-    fn compute_threshold_boundary_200_chars() {
+    fn threshold_boundary_200_chars() {
         let exactly_200 = "x".repeat(200);
-        let result = compute_threshold(&exactly_200, 0.75, true);
+        let result: f32 = threshold!(&exactly_200);
         assert!(
             (result - 0.75).abs() < f32::EPSILON,
             "200 chars should be medium, expected 0.75, got {}",
@@ -202,9 +181,9 @@ mod tests {
     }
 
     #[test]
-    fn compute_threshold_boundary_201_chars() {
+    fn threshold_boundary_201_chars() {
         let exactly_201 = "x".repeat(201);
-        let result = compute_threshold(&exactly_201, 0.75, true);
+        let result: f32 = threshold!(&exactly_201);
         assert!(
             (result - 0.80).abs() < f32::EPSILON,
             "201 chars should be long, expected 0.80, got {}",
@@ -213,9 +192,8 @@ mod tests {
     }
 
     #[test]
-    fn compute_threshold_empty_text() {
-        let empty = "";
-        let result = compute_threshold(empty, 0.75, true);
+    fn threshold_empty_text() {
+        let result: f32 = threshold!("");
         assert!(
             (result - 0.70).abs() < f32::EPSILON,
             "Empty text should be short, expected 0.70, got {}",

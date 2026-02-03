@@ -1,8 +1,9 @@
+use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
 use clap::Subcommand;
-use merc_engine::bench::{BenchDataset, Category};
+use merc_engine::bench::{BenchDataset, Category, RawScoreExport};
 use merc_engine::score::ScoreOptions;
 
 #[derive(Subcommand)]
@@ -11,12 +12,6 @@ pub enum BenchAction {
     Run {
         /// Path to the benchmark dataset JSON file
         path: PathBuf,
-        /// Base threshold for scoring (default: 0.75)
-        #[arg(short, long, default_value = "0.75")]
-        threshold: f32,
-        /// Enable dynamic thresholds based on text length
-        #[arg(short, long)]
-        dynamic: bool,
         /// Show detailed per-category and per-label results
         #[arg(short, long)]
         verbose: bool,
@@ -31,22 +26,38 @@ pub enum BenchAction {
         /// Path to the benchmark dataset JSON file
         path: PathBuf,
     },
+    /// Extract raw scores for Platt calibration training
+    Score {
+        /// Path to the benchmark dataset JSON file
+        path: PathBuf,
+        /// Output path for raw scores JSON
+        #[arg(short, long)]
+        output: PathBuf,
+    },
+    /// Train Platt calibration parameters from raw scores
+    Train {
+        /// Path to raw scores JSON (from extract-scores)
+        path: PathBuf,
+        /// Output path for trained parameters JSON
+        #[arg(short, long)]
+        output: PathBuf,
+        /// Also output Rust code for label.rs
+        #[arg(long)]
+        code: bool,
+    },
 }
 
 pub fn run(action: BenchAction) {
     match action {
-        BenchAction::Run {
-            path,
-            threshold,
-            dynamic,
-            verbose,
-        } => run_benchmark(&path, threshold, dynamic, verbose),
+        BenchAction::Run { path, verbose } => run_benchmark(&path, verbose),
         BenchAction::Validate { path } => validate_dataset(&path),
         BenchAction::Coverage { path } => show_coverage(&path),
+        BenchAction::Score { path, output } => extract_scores(&path, &output),
+        BenchAction::Train { path, output, code } => train_platt(&path, &output, code),
     }
 }
 
-fn run_benchmark(path: &PathBuf, threshold: f32, dynamic: bool, verbose: bool) {
+fn run_benchmark(path: &PathBuf, verbose: bool) {
     println!("Loading dataset from {:?}...", path);
 
     let dataset = match BenchDataset::load(path) {
@@ -60,9 +71,7 @@ fn run_benchmark(path: &PathBuf, threshold: f32, dynamic: bool, verbose: bool) {
     println!("Loaded {} samples", dataset.samples.len());
     println!("Building scorer (this may download model files on first run)...");
 
-    let options = ScoreOptions::new()
-        .with_threshold(threshold)
-        .with_dynamic_threshold(dynamic);
+    let options = ScoreOptions::new();
 
     println!("\nRunning benchmark...\n");
 
@@ -99,7 +108,11 @@ fn run_benchmark(path: &PathBuf, threshold: f32, dynamic: bool, verbose: bool) {
     // Display prominent score summary
     let score_out_of_100 = (result.accuracy * 100.0).round() as u32;
     println!("========================================");
-    println!("  SCORE: {}/100 ({:.1}%)", score_out_of_100, result.accuracy * 100.0);
+    println!(
+        "  SCORE: {}/100 ({:.1}%)",
+        score_out_of_100,
+        result.accuracy * 100.0
+    );
     println!("========================================\n");
 
     println!("=== Benchmark Results ===\n");
@@ -262,5 +275,138 @@ fn show_coverage(path: &PathBuf) {
         for label in &coverage.missing_labels {
             println!("  ✗ {}", label);
         }
+    }
+}
+
+fn extract_scores(path: &PathBuf, output: &PathBuf) {
+    println!("Loading dataset from {:?}...", path);
+
+    let dataset = match BenchDataset::load(path) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Error loading dataset: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("Loaded {} samples", dataset.samples.len());
+    println!("Building scorer (this may download model files on first run)...");
+
+    let options = ScoreOptions::new();
+
+    println!("\nExtracting raw scores...\n");
+
+    let total = dataset.samples.len();
+    let export = match merc_engine::bench::export_raw_scores_with_options(&dataset, options, |p| {
+        let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
+        let bar_width = 30;
+        let filled = pct * bar_width / 100;
+        let empty = bar_width - filled;
+        print!(
+            "\r[{}{}] {:3}% ({:3}/{:3}) {}\x1B[K",
+            "█".repeat(filled),
+            "░".repeat(empty),
+            pct,
+            p.current,
+            p.total,
+            p.sample_id
+        );
+        let _ = io::stdout().flush();
+    }) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("\nError extracting scores: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // Clear the progress line
+    print!("\r\x1B[K");
+    println!("Extracted scores for {} samples", total);
+
+    // Write to output file
+    let json = match serde_json::to_string_pretty(&export) {
+        Ok(j) => j,
+        Err(e) => {
+            eprintln!("Error serializing output: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if let Err(e) = fs::write(output, json) {
+        eprintln!("Error writing output file: {}", e);
+        std::process::exit(1);
+    }
+
+    println!("Raw scores written to {:?}", output);
+}
+
+fn train_platt(path: &PathBuf, output: &PathBuf, generate_rust: bool) {
+    println!("Loading raw scores from {:?}...", path);
+
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error reading file: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let export: RawScoreExport = match serde_json::from_str(&content) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("Error parsing JSON: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("Loaded {} samples", export.samples.len());
+    println!("\nTraining Platt parameters...");
+
+    let result = merc_engine::bench::train_platt_params(&export);
+
+    // Display results
+    println!("\n=== Training Results ===\n");
+
+    let mut sorted_labels: Vec<_> = result.params.iter().collect();
+    sorted_labels.sort_by_key(|(k, _)| k.as_str());
+
+    for (label, params) in &sorted_labels {
+        let stats = result.metadata.samples_per_label.get(*label);
+        let status = if let Some(s) = stats {
+            if s.skipped {
+                format!("SKIPPED (pos={}, neg={})", s.positive, s.negative)
+            } else {
+                format!("pos={}, neg={}", s.positive, s.negative)
+            }
+        } else {
+            "".to_string()
+        };
+        println!(
+            "{:20} a={:7.4}, b={:7.4}  [{}]",
+            label, params.a, params.b, status
+        );
+    }
+
+    // Write parameters to output file
+    let json = match serde_json::to_string_pretty(&result) {
+        Ok(j) => j,
+        Err(e) => {
+            eprintln!("\nError serializing output: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if let Err(e) = fs::write(output, json) {
+        eprintln!("\nError writing output file: {}", e);
+        std::process::exit(1);
+    }
+
+    println!("\nParameters written to {:?}", output);
+
+    if generate_rust {
+        let rust_code = merc_engine::bench::generate_rust_code(&result);
+        println!("\n=== Rust Code ===\n");
+        println!("{}", rust_code);
     }
 }

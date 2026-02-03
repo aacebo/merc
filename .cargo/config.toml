@@ -3,7 +3,9 @@
 jobs = -1
 
 [alias]
-merc = "run --package merc-cli -- "
+merc = "run --package merc-cli --"
+score = "run --package merc-cli -- bench score datasets/label.samples.json -o build/scores.json"
+train = "run --package merc-cli -- bench train build/scores.json -o build/params.json"
 
 [env]
 RUST_BACKTRACE = "1"

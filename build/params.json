@@ -1,0 +1,243 @@
+{
+  "params": {
+    "reward": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "joy": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "task": {
+      "a": -0.15266298,
+      "b": -1.4099616
+    },
+    "progress": {
+      "a": -0.5979028,
+      "b": -1.7638828
+    },
+    "fact": {
+      "a": -0.12004216,
+      "b": -1.4667774
+    },
+    "negative": {
+      "a": 0.042662717,
+      "b": -1.5892642
+    },
+    "preference": {
+      "a": -0.3018761,
+      "b": -1.3135556
+    },
+    "fear": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "pride": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "neutral": {
+      "a": -0.57144123,
+      "b": -1.7926527
+    },
+    "punishment": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "decision": {
+      "a": -0.33435848,
+      "b": -1.3816984
+    },
+    "shame": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "plan": {
+      "a": -0.60883534,
+      "b": -1.6933246
+    },
+    "time": {
+      "a": 0.14566864,
+      "b": -1.1743084
+    },
+    "failure": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "anger": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "conflict": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "goal": {
+      "a": -0.6295798,
+      "b": -1.6774489
+    },
+    "entity": {
+      "a": -0.4556655,
+      "b": -1.5669022
+    },
+    "place": {
+      "a": -0.50065887,
+      "b": -1.589297
+    },
+    "sad": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "stress": {
+      "a": 1.0,
+      "b": 0.0
+    },
+    "success": {
+      "a": -0.43510747,
+      "b": -1.7473615
+    },
+    "positive": {
+      "a": -0.15322472,
+      "b": -1.5889105
+    },
+    "phatic": {
+      "a": 1.0381202,
+      "b": -1.4050869
+    }
+  },
+  "metadata": {
+    "total_samples": 112,
+    "samples_per_label": {
+      "place": {
+        "positive": 9,
+        "negative": 103,
+        "skipped": false
+      },
+      "negative": {
+        "positive": 15,
+        "negative": 97,
+        "skipped": false
+      },
+      "anger": {
+        "positive": 3,
+        "negative": 109,
+        "skipped": true
+      },
+      "reward": {
+        "positive": 1,
+        "negative": 111,
+        "skipped": true
+      },
+      "phatic": {
+        "positive": 17,
+        "negative": 95,
+        "skipped": false
+      },
+      "sad": {
+        "positive": 2,
+        "negative": 110,
+        "skipped": true
+      },
+      "goal": {
+        "positive": 6,
+        "negative": 106,
+        "skipped": false
+      },
+      "entity": {
+        "positive": 10,
+        "negative": 102,
+        "skipped": false
+      },
+      "plan": {
+        "positive": 6,
+        "negative": 106,
+        "skipped": false
+      },
+      "task": {
+        "positive": 17,
+        "negative": 95,
+        "skipped": false
+      },
+      "conflict": {
+        "positive": 4,
+        "negative": 108,
+        "skipped": true
+      },
+      "failure": {
+        "positive": 3,
+        "negative": 109,
+        "skipped": true
+      },
+      "punishment": {
+        "positive": 1,
+        "negative": 111,
+        "skipped": true
+      },
+      "preference": {
+        "positive": 17,
+        "negative": 95,
+        "skipped": false
+      },
+      "fear": {
+        "positive": 3,
+        "negative": 109,
+        "skipped": true
+      },
+      "progress": {
+        "positive": 5,
+        "negative": 107,
+        "skipped": false
+      },
+      "fact": {
+        "positive": 16,
+        "negative": 96,
+        "skipped": false
+      },
+      "decision": {
+        "positive": 15,
+        "negative": 97,
+        "skipped": false
+      },
+      "pride": {
+        "positive": 2,
+        "negative": 110,
+        "skipped": true
+      },
+      "time": {
+        "positive": 27,
+        "negative": 85,
+        "skipped": false
+      },
+      "shame": {
+        "positive": 2,
+        "negative": 110,
+        "skipped": true
+      },
+      "success": {
+        "positive": 7,
+        "negative": 105,
+        "skipped": false
+      },
+      "joy": {
+        "positive": 4,
+        "negative": 108,
+        "skipped": true
+      },
+      "neutral": {
+        "positive": 5,
+        "negative": 107,
+        "skipped": false
+      },
+      "positive": {
+        "positive": 13,
+        "negative": 99,
+        "skipped": false
+      },
+      "stress": {
+        "positive": 3,
+        "negative": 109,
+        "skipped": true
+      }
+    }
+  }
+}

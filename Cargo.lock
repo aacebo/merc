@@ -2118,6 +2118,7 @@ dependencies = [
  "rust-bert",
  "serde",
  "serde_json",
+ "tch",
 ]
 
 [[package]]

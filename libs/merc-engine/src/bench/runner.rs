@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::score::{ScoreLayer, ScoreOptions, ScoreResult};
+use serde::{Deserialize, Serialize};
+
+use crate::score::{Label, ScoreLayer, ScoreOptions, ScoreResult};
 use crate::{Context, Layer};
 
 use super::dataset::{BenchDataset, BenchSample, Category, Decision};
@@ -275,6 +277,78 @@ fn update_label_metrics(
             entry.false_negatives += 1;
         }
     }
+}
+
+// === Raw Score Export for Platt Calibration Training ===
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RawScoreExport {
+    pub samples: Vec<SampleScores>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SampleScores {
+    pub id: String,
+    pub text: String,
+    pub scores: HashMap<String, f32>,
+    pub expected_labels: Vec<String>,
+}
+
+/// Export raw (uncalibrated) scores for all labels on each sample.
+/// Used for training Platt calibration parameters.
+pub fn export_raw_scores(
+    dataset: &BenchDataset,
+    layer: &ScoreLayer,
+    on_progress: impl Fn(Progress),
+) -> RawScoreExport {
+    let mut samples = Vec::with_capacity(dataset.samples.len());
+    let total = dataset.samples.len();
+
+    for (i, sample) in dataset.samples.iter().enumerate() {
+        let ctx = Context::new(&sample.text);
+        let mut scores = HashMap::new();
+
+        // Initialize all labels with 0.0
+        for label in Label::all() {
+            scores.insert(label.to_string(), 0.0);
+        }
+
+        // Run scoring and collect raw scores
+        if let Ok(layer_result) = layer.invoke(&ctx) {
+            let score_result: &ScoreResult = layer_result.data();
+            for score_label in score_result.labels() {
+                scores.insert(score_label.label.to_string(), score_label.raw_score);
+            }
+        }
+
+        on_progress(Progress {
+            current: i + 1,
+            total,
+            sample_id: sample.id.clone(),
+            correct: true,
+        });
+
+        samples.push(SampleScores {
+            id: sample.id.clone(),
+            text: sample.text.clone(),
+            scores,
+            expected_labels: sample.expected_labels.clone(),
+        });
+    }
+
+    RawScoreExport { samples }
+}
+
+/// Export raw scores with options (builds the scorer internally).
+pub fn export_raw_scores_with_options(
+    dataset: &BenchDataset,
+    options: ScoreOptions,
+    on_progress: impl Fn(Progress),
+) -> Result<RawScoreExport, String> {
+    let layer = options
+        .build()
+        .map_err(|e| format!("Failed to build scorer: {}", e))?;
+    Ok(export_raw_scores(dataset, &layer, on_progress))
 }
 
 #[cfg(test)]
