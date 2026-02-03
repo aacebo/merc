@@ -1,9 +1,18 @@
 # 6.1.1 Scoring Algorithm
 
 <pre>
-├── <a href="./README.md">..</a>
-├── <span><a href="./scoring-algorithm.md"><b>6.1.1 Scoring Algorithm</b></a> 👈</span>
-└── <a href="./roadmap/README.md">▸ 6.1.2 Roadmap/</a>
+├── <a href="../README.md">..</a>
+├── <a href="../1.memory.md">▸ 1. Memory</a>
+├── <a href="../2.ingestion.md">▸ 2. Ingestion</a>
+├── <a href="../3.guards.md">▸ 3. Guards</a>
+├── <a href="../4.recall.md">▸ 4. Recall</a>
+├── <a href="../5.classification.md">▸ 5. Classification</a>
+└── <a href="../README.md">▾ 6. Research/</a>
+    ├── <a href="./README.md">▾ 6.1 Merc/</a>
+    │   ├── <span><a href="./scoring-algorithm.md"><b>6.1.1 Scoring Algorithm</b></a> 👈</span>
+    │   └── <a href="./roadmap/README.md">▸ 6.1.2 Roadmap/</a>
+    ├── <a href="../reference/README.md">▸ 6.2 Reference/</a>
+    └── <a href="../analysis/README.md">▸ 6.3 Analysis/</a>
 </pre>
 
 A multi-dimensional text classification system for determining text importance and filtering trivial content.

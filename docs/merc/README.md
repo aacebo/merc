@@ -4,9 +4,17 @@ Documentation for the Merc scoring engine—a write-time memory gating system us
 
 <pre>
 ├── <a href="../README.md">..</a>
-├── <span><a href="./README.md"><b>▾ 6.1 Merc/</b></a> 👈</span>
-│   ├── <a href="./scoring-algorithm.md">6.1.1 Scoring Algorithm</a>
-│   └── <a href="./roadmap/README.md">▸ 6.1.2 Roadmap/</a>
+├── <a href="../1.memory.md">▸ 1. Memory</a>
+├── <a href="../2.ingestion.md">▸ 2. Ingestion</a>
+├── <a href="../3.guards.md">▸ 3. Guards</a>
+├── <a href="../4.recall.md">▸ 4. Recall</a>
+├── <a href="../5.classification.md">▸ 5. Classification</a>
+└── <a href="../README.md">▾ 6. Research/</a>
+    ├── <span><a href="./README.md"><b>▾ 6.1 Merc/</b></a> 👈</span>
+    │   ├── <a href="./scoring-algorithm.md">6.1.1 Scoring Algorithm</a>
+    │   └── <a href="./roadmap/README.md">▸ 6.1.2 Roadmap/</a>
+    ├── <a href="../reference/README.md">▸ 6.2 Reference/</a>
+    └── <a href="../analysis/README.md">▸ 6.3 Analysis/</a>
 </pre>
 
 ---
