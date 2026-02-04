@@ -2,7 +2,8 @@
 
 **Layer-Oriented Orchestration Machine**
 
-This projects goal is to design a memory management system modeled after the human brain (or at least what we know of it thus far).
+A framework/runtime and set of binaries for building layered pipelines with
+intelligence models.
 
 <pre>
 ├── <a href="./README.md"><b>&lt;&lt;root&gt;&gt;</b></a> 👈
