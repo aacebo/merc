@@ -83,8 +83,8 @@ impl Default for YamlFileSource {
     }
 }
 
-impl DataSource for YamlFileSource {
-    fn read(&self, path: &Path) -> Result<Document, ReadError> {
+impl YamlFileSource {
+    fn read_file(&self, path: &Path) -> Result<Document, ReadError> {
         let id = Id::new(path.to_string().as_str());
 
         {
@@ -134,7 +134,7 @@ impl DataSource for YamlFileSource {
         Ok(document)
     }
 
-    fn write(&self, document: Document) -> Result<(), WriteError> {
+    fn write_file(&self, document: &Document) -> Result<(), WriteError> {
         let full_path = self.full_path(&document.path).map_err(|e| match e {
             ReadError::Custom(msg) => WriteError::Custom(msg),
             ReadError::IO(io) => WriteError::IO(io),
@@ -181,9 +181,132 @@ impl DataSource for YamlFileSource {
                 .cache
                 .write()
                 .map_err(|e| WriteError::Panic(e.to_string()))?;
-            cache.insert(id, document);
+            cache.insert(id, document.clone());
         }
 
+        Ok(())
+    }
+
+    fn list_files(&self, dir_path: &std::path::Path) -> Result<Vec<PathBuf>, ReadError> {
+        let mut files = Vec::new();
+        if dir_path.is_dir() {
+            for entry in std::fs::read_dir(dir_path)? {
+                let entry = entry?;
+                let entry_path = entry.path();
+                if entry_path.is_file() {
+                    files.push(entry_path);
+                } else if entry_path.is_dir() {
+                    files.extend(self.list_files(&entry_path)?);
+                }
+            }
+        }
+        Ok(files)
+    }
+}
+
+impl DataSource for YamlFileSource {
+    fn exists(&self, path: &Path) -> Result<bool, ReadError> {
+        let full_path = self.full_path(path)?;
+        Ok(full_path.exists())
+    }
+
+    fn count(&self, path: &Path) -> Result<usize, ReadError> {
+        let full_path = self.full_path(path)?;
+        if full_path.is_file() {
+            return Ok(1);
+        }
+        if full_path.is_dir() {
+            let files = self.list_files(&full_path)?;
+            return Ok(files.len());
+        }
+        Ok(0)
+    }
+
+    fn find_one(&self, path: &Path) -> Result<Document, ReadError> {
+        self.read_file(path)
+    }
+
+    fn find(&self, path: &Path) -> Result<Vec<Document>, ReadError> {
+        let full_path = self.full_path(path)?;
+
+        if full_path.is_file() {
+            return Ok(vec![self.read_file(path)?]);
+        }
+
+        if full_path.is_dir() {
+            let files = self.list_files(&full_path)?;
+            let mut documents = Vec::new();
+            for file_path in files {
+                let relative = file_path
+                    .strip_prefix(&self.options.path)
+                    .unwrap_or(&file_path);
+                let path = Path::File(crate::path::FilePath::parse(
+                    relative.to_str().unwrap_or(""),
+                ));
+                documents.push(self.read_file(&path)?);
+            }
+            return Ok(documents);
+        }
+
+        Ok(Vec::new())
+    }
+
+    fn create(&self, document: Document) -> Result<(), WriteError> {
+        let full_path = self.full_path(&document.path).map_err(|e| match e {
+            ReadError::Custom(msg) => WriteError::Custom(msg),
+            ReadError::IO(io) => WriteError::IO(io),
+            ReadError::Panic(msg) => WriteError::Panic(msg),
+        })?;
+
+        if full_path.exists() {
+            return Err(WriteError::Custom(format!(
+                "file already exists: {}",
+                document.path
+            )));
+        }
+
+        self.write_file(&document)
+    }
+
+    fn update(&self, document: Document) -> Result<(), WriteError> {
+        let full_path = self.full_path(&document.path).map_err(|e| match e {
+            ReadError::Custom(msg) => WriteError::Custom(msg),
+            ReadError::IO(io) => WriteError::IO(io),
+            ReadError::Panic(msg) => WriteError::Panic(msg),
+        })?;
+
+        if !full_path.exists() {
+            return Err(WriteError::Custom(format!(
+                "file not found: {}",
+                document.path
+            )));
+        }
+
+        self.write_file(&document)
+    }
+
+    fn upsert(&self, document: Document) -> Result<(), WriteError> {
+        self.write_file(&document)
+    }
+
+    fn delete(&self, path: &Path) -> Result<(), WriteError> {
+        let full_path = self.full_path(path).map_err(|e| match e {
+            ReadError::Custom(msg) => WriteError::Custom(msg),
+            ReadError::IO(io) => WriteError::IO(io),
+            ReadError::Panic(msg) => WriteError::Panic(msg),
+        })?;
+
+        if !full_path.exists() {
+            return Err(WriteError::Custom(format!("file not found: {}", path)));
+        }
+
+        // Remove from cache
+        let id = Id::new(path.to_string().as_str());
+        if let Ok(mut cache) = self.cache.write() {
+            cache.remove(&id);
+        }
+
+        std::fs::remove_file(&full_path)?;
         Ok(())
     }
 }
@@ -202,8 +325,16 @@ mod tests {
         YamlFileSourceOptions::new().with_path(test_dir())
     }
 
+    fn make_yaml_doc(path: &Path) -> Document {
+        let mut obj = Object::new();
+        obj.insert("key".to_string(), Value::String("value".to_string()));
+        let content = Value::Object(obj);
+        let entity = Entity::new(FieldPath::parse("root").unwrap(), "text/yaml", content);
+        Document::new(path.clone(), MediaType::TextYaml, vec![entity])
+    }
+
     #[test]
-    fn test_read_yaml_file() {
+    fn test_find_one_yaml_file() {
         let dir = test_dir();
         std::fs::create_dir_all(&dir).unwrap();
         let file_path = dir.join("test.yaml");
@@ -212,7 +343,7 @@ mod tests {
         let ds = YamlFileSource::with_options(test_options());
         let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
 
-        let doc = ds.read(&path).unwrap();
+        let doc = ds.find_one(&path).unwrap();
 
         assert_eq!(doc.media_type, MediaType::TextYaml);
         assert!(doc.content[0].content.is_object());
@@ -224,7 +355,7 @@ mod tests {
     }
 
     #[test]
-    fn test_read_text_file() {
+    fn test_find_one_text_file() {
         let dir = test_dir();
         std::fs::create_dir_all(&dir).unwrap();
         let file_path = dir.join("test.txt");
@@ -233,7 +364,7 @@ mod tests {
         let ds = YamlFileSource::with_options(test_options());
         let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
 
-        let doc = ds.read(&path).unwrap();
+        let doc = ds.find_one(&path).unwrap();
 
         assert_eq!(doc.media_type, MediaType::TextPlain);
         assert_eq!(doc.content[0].content.as_str(), Some("Hello, World!"));
@@ -243,25 +374,135 @@ mod tests {
     }
 
     #[test]
-    fn test_write_yaml_file() {
-        let ds = YamlFileSource::with_options(test_options());
-        let file_path = test_dir().join("write_test.yaml");
+    fn test_exists() {
+        let dir = test_dir();
+        std::fs::create_dir_all(&dir).unwrap();
+        let file_path = dir.join("exists_test.yaml");
         let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
 
-        let mut obj = Object::new();
-        obj.insert("key".to_string(), Value::String("value".to_string()));
-        let content = Value::Object(obj);
+        let ds = YamlFileSource::with_options(test_options());
 
-        let entity = Entity::new(FieldPath::parse("root").unwrap(), "text/yaml", content);
-        let doc = Document::new(path.clone(), MediaType::TextYaml, vec![entity]);
+        assert!(!ds.exists(&path).unwrap());
+        std::fs::write(&file_path, "key: value").unwrap();
+        assert!(ds.exists(&path).unwrap());
 
-        ds.write(doc).unwrap();
+        let _ = std::fs::remove_file(&file_path);
+    }
+
+    #[test]
+    fn test_create_yaml_file() {
+        let ds = YamlFileSource::with_options(test_options());
+        let file_path = test_dir().join("create_test.yaml");
+        let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
+        let doc = make_yaml_doc(&path);
+
+        // Ensure file doesn't exist
+        let _ = std::fs::remove_file(&file_path);
+
+        ds.create(doc).unwrap();
 
         let written = std::fs::read_to_string(&file_path).unwrap();
         assert!(written.contains("key"));
         assert!(written.contains("value"));
 
         let _ = std::fs::remove_file(&file_path);
+    }
+
+    #[test]
+    fn test_create_duplicate_fails() {
+        let ds = YamlFileSource::with_options(test_options());
+        let file_path = test_dir().join("create_dup_test.yaml");
+        let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
+        let doc = make_yaml_doc(&path);
+
+        // Ensure file doesn't exist
+        let _ = std::fs::remove_file(&file_path);
+
+        ds.create(doc.clone()).unwrap();
+        let result = ds.create(doc);
+        assert!(result.is_err());
+
+        let _ = std::fs::remove_file(&file_path);
+    }
+
+    #[test]
+    fn test_update() {
+        let ds = YamlFileSource::with_options(test_options());
+        let file_path = test_dir().join("update_test.yaml");
+        let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
+
+        // Create file first
+        std::fs::create_dir_all(test_dir()).unwrap();
+        std::fs::write(&file_path, "old: data").unwrap();
+
+        let doc = make_yaml_doc(&path);
+        ds.update(doc).unwrap();
+
+        let written = std::fs::read_to_string(&file_path).unwrap();
+        assert!(written.contains("key"));
+
+        let _ = std::fs::remove_file(&file_path);
+    }
+
+    #[test]
+    fn test_update_not_found() {
+        let ds = YamlFileSource::with_options(test_options());
+        let file_path = test_dir().join("update_not_found.yaml");
+        let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
+        let doc = make_yaml_doc(&path);
+
+        // Ensure file doesn't exist
+        let _ = std::fs::remove_file(&file_path);
+
+        let result = ds.update(doc);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_upsert() {
+        let ds = YamlFileSource::with_options(test_options());
+        let file_path = test_dir().join("upsert_test.yaml");
+        let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
+        let doc = make_yaml_doc(&path);
+
+        // Ensure file doesn't exist
+        let _ = std::fs::remove_file(&file_path);
+
+        // Works when doesn't exist
+        ds.upsert(doc.clone()).unwrap();
+        assert!(ds.exists(&path).unwrap());
+
+        // Works when exists
+        ds.upsert(doc).unwrap();
+        assert!(ds.exists(&path).unwrap());
+
+        let _ = std::fs::remove_file(&file_path);
+    }
+
+    #[test]
+    fn test_delete() {
+        let ds = YamlFileSource::with_options(test_options());
+        let file_path = test_dir().join("delete_test.yaml");
+        let path = Path::File(FilePath::parse(file_path.to_str().unwrap()));
+        let doc = make_yaml_doc(&path);
+
+        // Ensure clean state
+        let _ = std::fs::remove_file(&file_path);
+
+        ds.create(doc).unwrap();
+        assert!(ds.exists(&path).unwrap());
+
+        ds.delete(&path).unwrap();
+        assert!(!ds.exists(&path).unwrap());
+    }
+
+    #[test]
+    fn test_delete_not_found() {
+        let ds = YamlFileSource::with_options(test_options());
+        let path = Path::File(FilePath::parse("/nonexistent/file.yaml"));
+
+        let result = ds.delete(&path);
+        assert!(result.is_err());
     }
 
     #[test]
@@ -281,21 +522,24 @@ mod tests {
         );
         let doc = Document::new(path.clone(), MediaType::TextYaml, vec![entity]);
 
-        ds.write(doc).unwrap();
+        // Ensure clean state
+        let _ = std::fs::remove_file(&file_path);
+
+        ds.create(doc).unwrap();
         ds.clear().unwrap();
 
-        let read_doc = ds.read(&path).unwrap();
+        let read_doc = ds.find_one(&path).unwrap();
         assert_eq!(read_doc.content[0].content["test"].as_int(), Some(123));
 
         let _ = std::fs::remove_file(&file_path);
     }
 
     #[test]
-    fn test_read_not_found() {
+    fn test_find_one_not_found() {
         let ds = YamlFileSource::with_options(test_options());
         let path = Path::File(FilePath::parse("/nonexistent/file.yaml"));
 
-        let result = ds.read(&path);
+        let result = ds.find_one(&path);
         assert!(result.is_err());
         assert!(result.unwrap_err().is_io());
     }
