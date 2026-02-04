@@ -18,6 +18,7 @@ pub use media_type::*;
 pub use options::*;
 
 pub struct Runtime {
+    #[allow(unused)]
     data_sources: Vec<Box<dyn DataSource>>,
 }
 
