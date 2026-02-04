@@ -5,7 +5,7 @@ use async_trait::async_trait;
 
 use crate::path::Path;
 
-use crate::data_source::{DataSource, Id, ReadError, Record, WriteError};
+use crate::{DataSource, Id, ReadError, Record, WriteError};
 
 pub struct MemorySource {
     records: RwLock<HashMap<Id, Record>>,
@@ -27,6 +27,10 @@ impl Default for MemorySource {
 
 #[async_trait]
 impl DataSource for MemorySource {
+    fn name(&self) -> &str {
+        "memory"
+    }
+
     async fn exists(&self, path: &Path) -> Result<bool, ReadError> {
         let id = Id::new(path.to_string().as_str());
         let records = self

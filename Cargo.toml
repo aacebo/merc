@@ -15,9 +15,15 @@ repository = "https://www.github.com/aacebo/loom"
 [workspace.dependencies]
 # libs (public)
 loom = { path = "./libs/loom", version = "0.0.1" }
+loom-codec = { path = "./libs/loom-codec", version = "0.0.1" }
+loom-config = { path = "./libs/loom-config", version = "0.0.1" }
+loom-io = { path = "./libs/loom-io", version = "0.0.1" }
+loom-core = { path = "./libs/loom-core", version = "0.0.1" }
+loom-pipe = { path = "./libs/loom-pipe", version = "0.0.1" }
 loom-sync = { path = "./libs/loom-sync", version = "0.0.1" }
 loom-error = { path = "./libs/loom-error", version = "0.0.1" }
 loom-runtime = { path = "./libs/loom-runtime", version = "0.0.1" }
+loom-signal = { path = "./libs/loom-signal", version = "0.0.1" }
 
 # crates (private)
 events = { path = "./crates/events", version = "0.0.1" }
@@ -31,6 +37,7 @@ chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["default", "derive"] }
 serde_json = { version = "1" }
 saphyr = { version = "0.0.3" }
+toml = { version = "0.8" }
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "uuid", "chrono"] }
 tokio = { version = "1" }
 futures = { version = "0.3" }

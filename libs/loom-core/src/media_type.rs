@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::Format;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MediaType {
     // --- Text / structured text ---
     TextPlain,

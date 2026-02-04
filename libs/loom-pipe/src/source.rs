@@ -1,4 +1,4 @@
-use crate::pipe::{Build, Operator, Pipe};
+use crate::{Build, Operator, Pipe};
 
 pub struct Source<T> {
     handler: Box<dyn FnOnce() -> T>,

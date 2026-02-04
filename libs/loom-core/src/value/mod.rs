@@ -138,6 +138,57 @@ impl Value {
             _ => true,
         }
     }
+
+    /// Deep merge another Value into self
+    pub fn deep_merge(&mut self, source: Value) {
+        match (self, source) {
+            (Value::Object(target), Value::Object(source)) => {
+                for (key, source_value) in source.iter() {
+                    match target.get_mut(key) {
+                        Some(target_value) => target_value.deep_merge(source_value.clone()),
+                        None => {
+                            target.insert(key.clone(), source_value.clone());
+                        }
+                    }
+                }
+            }
+            (target, source) => *target = source,
+        }
+    }
+
+    /// Get value by FieldPath, traversing objects and arrays
+    pub fn get_by_path(&self, path: &crate::path::FieldPath) -> Option<&Value> {
+        use crate::path::FieldSegment;
+
+        let mut current = self;
+
+        for segment in path.segments() {
+            current = match (current, segment) {
+                (Value::Object(obj), FieldSegment::Key(key)) => obj.get(key)?,
+                (Value::Array(arr), FieldSegment::Index(idx)) => arr.get(*idx)?,
+                _ => return None,
+            };
+        }
+
+        Some(current)
+    }
+
+    /// Get mutable value by FieldPath
+    pub fn get_by_path_mut(&mut self, path: &crate::path::FieldPath) -> Option<&mut Value> {
+        use crate::path::FieldSegment;
+
+        let mut current = self;
+
+        for segment in path.segments() {
+            current = match (current, segment) {
+                (Value::Object(obj), FieldSegment::Key(key)) => obj.get_mut(key)?,
+                (Value::Array(arr), FieldSegment::Index(idx)) => arr.get_mut(*idx)?,
+                _ => return None,
+            };
+        }
+
+        Some(current)
+    }
 }
 
 impl std::fmt::Display for Value {
@@ -444,6 +495,71 @@ impl From<Value> for saphyr::Yaml {
                     .map(|(k, v)| (Self::String(k.clone()), Self::from(v)))
                     .collect();
                 Self::Hash(hash)
+            }
+        }
+    }
+}
+
+#[cfg(feature = "toml")]
+impl From<toml::Value> for Value {
+    fn from(toml_val: toml::Value) -> Self {
+        match toml_val {
+            toml::Value::Boolean(b) => Self::Bool(b),
+            toml::Value::Integer(i) => Self::Number(Number::Int(i)),
+            toml::Value::Float(f) => Self::Number(Number::Float(f)),
+            toml::Value::String(s) => Self::String(s),
+            toml::Value::Array(arr) => Self::Array(Array::from(
+                arr.into_iter().map(Self::from).collect::<Vec<_>>(),
+            )),
+            toml::Value::Table(table) => {
+                let mut map = Object::new();
+                for (k, v) in table {
+                    map.insert(k, Self::from(v));
+                }
+                Self::Object(map)
+            }
+            toml::Value::Datetime(dt) => Self::String(dt.to_string()),
+        }
+    }
+}
+
+#[cfg(feature = "toml")]
+impl From<&Value> for toml::Value {
+    fn from(value: &Value) -> Self {
+        match value {
+            Value::Null => Self::String(String::new()),
+            Value::Bool(b) => Self::Boolean(*b),
+            Value::Number(Number::Int(i)) => Self::Integer(*i),
+            Value::Number(Number::Float(f)) => Self::Float(*f),
+            Value::String(s) => Self::String(s.clone()),
+            Value::Array(arr) => Self::Array(arr.iter().map(Self::from).collect()),
+            Value::Object(obj) => {
+                let table: toml::Table = obj
+                    .iter()
+                    .map(|(k, v)| (k.clone(), Self::from(v)))
+                    .collect();
+                Self::Table(table)
+            }
+        }
+    }
+}
+
+#[cfg(feature = "toml")]
+impl From<Value> for toml::Value {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Null => Self::String(String::new()),
+            Value::Bool(b) => Self::Boolean(b),
+            Value::Number(Number::Int(i)) => Self::Integer(i),
+            Value::Number(Number::Float(f)) => Self::Float(f),
+            Value::String(s) => Self::String(s),
+            Value::Array(arr) => Self::Array(arr.into_iter().map(Self::from).collect()),
+            Value::Object(obj) => {
+                let table: toml::Table = obj
+                    .iter()
+                    .map(|(k, v)| (k.clone(), Self::from(v)))
+                    .collect();
+                Self::Table(table)
             }
         }
     }

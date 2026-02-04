@@ -1,4 +1,4 @@
-use crate::pipe::{Build, Operator, Pipe, Source};
+use crate::{Build, Operator, Pipe, Source};
 
 pub struct Transformer<Input, Output> {
     source: Source<Input>,

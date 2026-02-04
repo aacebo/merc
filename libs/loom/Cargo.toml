@@ -12,12 +12,35 @@ repository.workspace = true
 doctest = false
 
 [features]
+default = ["json"]
+
+# Format features (propagate to all crates that support them)
+json = ["loom-core?/json", "loom-config?/json", "loom-io?/json", "loom-codec?/json", "loom-runtime?/json"]
+yaml = ["loom-core?/yaml", "loom-config?/yaml", "loom-io?/yaml", "loom-codec?/yaml", "loom-runtime?/yaml"]
+toml = ["loom-core?/toml", "loom-config?/toml", "loom-io?/toml", "loom-codec?/toml", "loom-runtime?/toml"]
+
+# Crate features
+core = ["dep:loom-core"]
+config = ["dep:loom-config"]
+io = ["dep:loom-io"]
+codec = ["dep:loom-codec"]
+pipe = ["dep:loom-pipe"]
 error = ["dep:loom-error"]
-runtime = ["dep:loom-runtime"]
 sync = ["dep:loom-sync"]
-tokio = ["loom-sync/tokio"]
+signal = ["dep:loom-signal"]
+runtime = ["dep:loom-runtime"]
+tokio = ["sync", "loom-sync?/tokio"]
+
+# Convenience feature to enable all crates
+full = ["core", "config", "io", "codec", "pipe", "error", "sync", "signal", "runtime"]
 
 [dependencies]
+loom-core = { workspace = true, optional = true }
+loom-config = { workspace = true, optional = true }
+loom-io = { workspace = true, optional = true }
+loom-codec = { workspace = true, optional = true }
+loom-pipe = { workspace = true, optional = true }
 loom-error = { workspace = true, optional = true }
-loom-runtime = { workspace = true, optional = true }
 loom-sync = { workspace = true, optional = true }
+loom-signal = { workspace = true, optional = true }
+loom-runtime = { workspace = true, optional = true }

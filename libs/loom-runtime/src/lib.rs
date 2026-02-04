@@ -1,25 +1,40 @@
 pub mod bench;
-pub mod codec;
 mod context;
-mod data_source;
-mod format;
 mod layer;
-mod map;
-mod media_type;
 mod options;
-pub mod path;
-pub mod pipe;
 pub mod score;
-pub mod value;
 
-pub use codec::*;
+pub use loom_pipe;
+
 pub use context::*;
-pub use data_source::*;
-pub use format::*;
 pub use layer::*;
-pub use map::*;
-pub use media_type::*;
 pub use options::*;
+
+// Re-export from loom-core
+pub use loom_core::{Format, Map, MediaType, path, value};
+
+// Re-export from loom-config
+pub use loom_config as config;
+pub use loom_config::{ConfigBuilder, ConfigError, ConfigRoot, ConfigSection, ConfigSource};
+
+// Re-export from loom-io
+pub use loom_io as data_source;
+pub use loom_io::{DataSource, Document, ETag, Entity, Id, ReadError, Record, WriteError};
+
+// Re-export from loom-codec
+pub use loom_codec as codec;
+pub use loom_codec::{Codec, CodecError};
+
+#[cfg(feature = "json")]
+pub use loom_codec::JsonCodec;
+
+#[cfg(feature = "yaml")]
+pub use loom_codec::YamlCodec;
+
+#[cfg(feature = "toml")]
+pub use loom_codec::TomlCodec;
+
+pub use loom_codec::TextCodec;
 
 pub struct Runtime {
     #[allow(unused)]

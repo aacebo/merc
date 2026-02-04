@@ -9,10 +9,8 @@ pub use label::*;
 pub use options::*;
 pub use result::*;
 
-use crate::{
-    pipe::{self, Build},
-    threshold,
-};
+use crate::threshold;
+use loom_pipe::Build;
 
 use rust_bert::pipelines::zero_shot_classification;
 
@@ -75,11 +73,11 @@ impl ScoreLayer {
     }
 }
 
-impl<Input: 'static> pipe::Operator<Context<Input>> for ScoreLayer {
+impl<Input: 'static> loom_pipe::Operator<Context<Input>> for ScoreLayer {
     type Output = loom_error::Result<LayerResult<ScoreResult>>;
 
-    fn apply(self, src: pipe::Source<Context<Input>>) -> pipe::Source<Self::Output> {
-        pipe::Source::new(move || self.invoke(src.build()))
+    fn apply(self, src: loom_pipe::Source<Context<Input>>) -> loom_pipe::Source<Self::Output> {
+        loom_pipe::Source::new(move || self.invoke(src.build()))
     }
 }
 
@@ -89,12 +87,14 @@ mod tests {
     use loom_error::{ErrorCode, Result};
 
     #[cfg(feature = "int")]
-    use crate::{Context, pipe::Source, score::ScoreOptions};
+    use crate::{Context, score::ScoreOptions};
+    #[cfg(feature = "int")]
+    use loom_pipe::Source;
 
     #[cfg(feature = "int")]
     #[test]
     fn should_cancel() -> Result<()> {
-        use crate::pipe::{Build, Pipe};
+        use loom_pipe::{Build, Pipe};
 
         let layer = ScoreOptions::new().build()?;
         let context = Context::new("hi how are you?", ());
@@ -112,7 +112,7 @@ mod tests {
     #[cfg(feature = "int")]
     #[test]
     fn should_be_stressed() -> Result<()> {
-        use crate::pipe::{Build, Pipe};
+        use loom_pipe::{Build, Pipe};
 
         let layer = ScoreOptions::new().build()?;
         let context = Context::new("oh my god, I'm going to be late for work!", ());

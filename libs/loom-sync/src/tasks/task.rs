@@ -94,7 +94,7 @@ impl<T: Send + 'static> Drop for Task<T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "tokio"))]
 mod tests {
     use super::*;
     use crate::chan::Channel;

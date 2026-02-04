@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use crate::MediaType;
 use crate::path::Path;
 
-use crate::data_source::{DataSource, Id, ReadError, Record, WriteError};
+use crate::{DataSource, Id, ReadError, Record, WriteError};
 
 #[derive(Debug, Clone)]
 pub struct FileSystemSourceOptions {
@@ -100,6 +100,10 @@ impl Default for FileSystemSource {
 
 #[async_trait]
 impl DataSource for FileSystemSource {
+    fn name(&self) -> &str {
+        "file_system"
+    }
+
     async fn exists(&self, path: &Path) -> Result<bool, ReadError> {
         let full_path = self.full_path(path)?;
         Ok(full_path.exists())

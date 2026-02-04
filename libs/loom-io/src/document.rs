@@ -36,7 +36,6 @@ impl PartialEq for Document {
     }
 }
 
-#[cfg(feature = "json")]
 impl std::fmt::Display for Document {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(

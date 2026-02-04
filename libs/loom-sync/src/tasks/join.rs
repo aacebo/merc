@@ -51,7 +51,7 @@ macro_rules! wait {
     }};
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "tokio"))]
 mod tests {
     use crate::spawn;
     use crate::tasks::{Task, TaskResult};

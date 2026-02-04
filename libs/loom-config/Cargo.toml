@@ -1,0 +1,25 @@
+[package]
+name = "loom-config"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[features]
+default = ["json"]
+json = ["loom-core/json", "dep:serde_json"]
+yaml = ["loom-core/yaml", "dep:saphyr"]
+toml = ["loom-core/toml", "dep:toml"]
+
+[dependencies]
+loom-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true, optional = true }
+saphyr = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }

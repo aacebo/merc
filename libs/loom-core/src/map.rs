@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::value::Value;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
 pub struct Map(BTreeMap<String, Value>);
 
 impl Map {
@@ -45,5 +46,16 @@ impl std::fmt::Debug for Map {
         }
 
         s.finish()
+    }
+}
+
+#[cfg(feature = "json")]
+impl std::fmt::Display for Map {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            serde_json::to_string_pretty(self).expect("should serialize")
+        )
     }
 }

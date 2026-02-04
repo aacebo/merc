@@ -15,22 +15,30 @@ doctest = false
 default = ["json"]
 int = []
 tokio = ["loom-sync/tokio"]
-json = ["dep:serde_json"]
-yaml = ["dep:saphyr"]
+json = ["loom-core/json", "loom-config/json", "loom-io/json", "loom-codec/json", "dep:serde_json"]
+yaml = ["loom-core/yaml", "loom-config/yaml", "loom-io/yaml", "loom-codec/yaml", "dep:saphyr"]
+toml = ["loom-core/toml", "loom-config/toml", "loom-io/toml", "loom-codec/toml", "dep:toml"]
 
 [dependencies]
-async-trait = { workspace = true }
-blake3 = { workspace = true }
 rust-bert = { version = "0.23" }
 tch = { version = "0.17" }
 console = { version = "0.16", features = ["std"] }
+
+async-trait = { workspace = true }
+blake3 = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
 saphyr = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
 
 loom-error = { workspace = true }
 loom-sync = { workspace = true }
+loom-core = { workspace = true }
+loom-config = { workspace = true }
+loom-io = { workspace = true }
+loom-codec = { workspace = true }
+loom-pipe = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }

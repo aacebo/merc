@@ -1,0 +1,28 @@
+[package]
+name = "loom-io"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+readme.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[lib]
+doctest = false
+
+[features]
+default = ["json"]
+json = ["loom-core/json", "dep:serde_json"]
+yaml = ["loom-core/yaml"]
+toml = ["loom-core/toml"]
+
+[dependencies]
+loom-core = { workspace = true }
+async-trait = { workspace = true }
+blake3 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }

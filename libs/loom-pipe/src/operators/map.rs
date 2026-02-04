@@ -1,4 +1,4 @@
-use crate::pipe::{Build, Operator, Pipe, Source};
+use crate::{Build, Operator, Pipe, Source};
 
 pub struct MapOperator<Input, Output> {
     handler: Box<dyn FnOnce(Input) -> Output>,
