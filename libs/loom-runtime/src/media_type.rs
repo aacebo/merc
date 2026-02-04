@@ -1,7 +1,7 @@
 use std::path::Path;
 
-/// A pragmatic media type for ingestion.
-/// Keep this stable: it will end up in stored metadata and indexes.
+use crate::Format;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub enum MediaType {
     // --- Text / structured text ---
@@ -157,6 +157,35 @@ impl MediaType {
                 | Self::CodeDockerfile
                 | Self::Text
         )
+    }
+
+    pub fn format(self) -> Format {
+        match self {
+            Self::TextJson => Format::Json,
+            Self::TextYaml => Format::Yaml,
+            Self::TextToml => Format::Toml,
+            Self::TextXml => Format::Xml,
+            Self::TextCsv => Format::Csv,
+            Self::TextMarkdown => Format::Markdown,
+            Self::TextHtml => Format::Html,
+            Self::TextPlain
+            | Self::Text
+            | Self::CodeRust
+            | Self::CodeCSharp
+            | Self::CodeTypeScript
+            | Self::CodeJavaScript
+            | Self::CodePython
+            | Self::CodeGo
+            | Self::CodeJava
+            | Self::CodeKotlin
+            | Self::CodeSwift
+            | Self::CodeCpp
+            | Self::CodeC
+            | Self::CodeSql
+            | Self::CodeShell
+            | Self::CodeDockerfile => Format::Text,
+            _ => Format::Binary,
+        }
     }
 
     /// Best-effort inference from a file path extension.

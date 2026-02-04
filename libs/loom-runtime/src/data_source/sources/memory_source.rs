@@ -1,18 +1,20 @@
 use std::collections::HashMap;
 use std::sync::RwLock;
 
+use async_trait::async_trait;
+
 use crate::path::Path;
 
-use crate::data_source::{DataSource, Document, Id, ReadError, WriteError};
+use crate::data_source::{DataSource, Id, ReadError, Record, WriteError};
 
 pub struct MemorySource {
-    documents: RwLock<HashMap<Id, Document>>,
+    records: RwLock<HashMap<Id, Record>>,
 }
 
 impl MemorySource {
     pub fn new() -> Self {
         Self {
-            documents: RwLock::new(HashMap::new()),
+            records: RwLock::new(HashMap::new()),
         }
     }
 }
@@ -23,110 +25,111 @@ impl Default for MemorySource {
     }
 }
 
+#[async_trait]
 impl DataSource for MemorySource {
-    fn exists(&self, path: &Path) -> Result<bool, ReadError> {
+    async fn exists(&self, path: &Path) -> Result<bool, ReadError> {
         let id = Id::new(path.to_string().as_str());
-        let documents = self
-            .documents
+        let records = self
+            .records
             .read()
             .map_err(|e| ReadError::Panic(e.to_string()))?;
-        Ok(documents.contains_key(&id))
+        Ok(records.contains_key(&id))
     }
 
-    fn count(&self, path: &Path) -> Result<usize, ReadError> {
+    async fn count(&self, path: &Path) -> Result<usize, ReadError> {
         let path_str = path.to_string();
-        let documents = self
-            .documents
+        let records = self
+            .records
             .read()
             .map_err(|e| ReadError::Panic(e.to_string()))?;
 
-        let count = documents
+        let count = records
             .values()
-            .filter(|doc| doc.path.to_string().starts_with(&path_str))
+            .filter(|r| r.path.to_string().starts_with(&path_str))
             .count();
         Ok(count)
     }
 
-    fn find_one(&self, path: &Path) -> Result<Document, ReadError> {
+    async fn find_one(&self, path: &Path) -> Result<Record, ReadError> {
         let id = Id::new(path.to_string().as_str());
-        let documents = self
-            .documents
+        let records = self
+            .records
             .read()
             .map_err(|e| ReadError::Panic(e.to_string()))?;
 
-        documents
+        records
             .get(&id)
             .cloned()
-            .ok_or_else(|| ReadError::Custom(format!("document not found: {}", path)))
+            .ok_or_else(|| ReadError::Custom(format!("record not found: {}", path)))
     }
 
-    fn find(&self, path: &Path) -> Result<Vec<Document>, ReadError> {
+    async fn find(&self, path: &Path) -> Result<Vec<Record>, ReadError> {
         let path_str = path.to_string();
-        let documents = self
-            .documents
+        let records = self
+            .records
             .read()
             .map_err(|e| ReadError::Panic(e.to_string()))?;
 
-        let results: Vec<Document> = documents
+        let results: Vec<Record> = records
             .values()
-            .filter(|doc| doc.path.to_string().starts_with(&path_str))
+            .filter(|r| r.path.to_string().starts_with(&path_str))
             .cloned()
             .collect();
         Ok(results)
     }
 
-    fn create(&self, document: Document) -> Result<(), WriteError> {
-        let mut documents = self
-            .documents
+    async fn create(&self, record: Record) -> Result<(), WriteError> {
+        let mut records = self
+            .records
             .write()
             .map_err(|e| WriteError::Panic(e.to_string()))?;
 
-        if documents.contains_key(&document.id) {
+        if records.contains_key(&record.id) {
             return Err(WriteError::Custom(format!(
-                "document already exists: {}",
-                document.path
+                "record already exists: {}",
+                record.path
             )));
         }
 
-        documents.insert(document.id, document);
+        records.insert(record.id, record);
         Ok(())
     }
 
-    fn update(&self, document: Document) -> Result<(), WriteError> {
-        let mut documents = self
-            .documents
+    async fn update(&self, record: Record) -> Result<(), WriteError> {
+        let mut records = self
+            .records
             .write()
             .map_err(|e| WriteError::Panic(e.to_string()))?;
 
-        if !documents.contains_key(&document.id) {
+        if !records.contains_key(&record.id) {
             return Err(WriteError::Custom(format!(
-                "document not found: {}",
-                document.path
+                "record not found: {}",
+                record.path
             )));
         }
 
-        documents.insert(document.id, document);
+        records.insert(record.id, record);
         Ok(())
     }
 
-    fn upsert(&self, document: Document) -> Result<(), WriteError> {
-        let mut documents = self
-            .documents
+    async fn upsert(&self, record: Record) -> Result<(), WriteError> {
+        let mut records = self
+            .records
             .write()
             .map_err(|e| WriteError::Panic(e.to_string()))?;
-        documents.insert(document.id, document);
+        records.insert(record.id, record);
         Ok(())
     }
 
-    fn delete(&self, path: &Path) -> Result<(), WriteError> {
+    async fn delete(&self, path: &Path) -> Result<(), WriteError> {
         let id = Id::new(path.to_string().as_str());
-        let mut documents = self
-            .documents
+        let mut records = self
+            .records
             .write()
             .map_err(|e| WriteError::Panic(e.to_string()))?;
 
-        if documents.remove(&id).is_none() {
-            return Err(WriteError::Custom(format!("document not found: {}", path)));
+        if records.remove(&id).is_none() {
+            return Err(WriteError::Custom(format!("record not found: {}", path)));
         }
 
         Ok(())
@@ -136,143 +139,136 @@ impl DataSource for MemorySource {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Entity, MediaType, path::FieldPath, path::FilePath, value::Value};
+    use crate::{MediaType, path::FilePath};
 
-    fn make_doc(path: &Path) -> Document {
-        let entity = Entity::new(
-            FieldPath::parse("root").unwrap(),
-            "text",
-            Value::String("hello".to_string()),
-        );
-        Document::new(path.clone(), MediaType::TextPlain, vec![entity])
+    fn make_record(path: &Path) -> Record {
+        Record::from_str(path.clone(), MediaType::TextPlain, "hello")
     }
 
-    #[test]
-    fn test_create_and_find_one() {
+    #[tokio::test]
+    async fn test_create_and_find_one() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/test/file.txt"));
-        let doc = make_doc(&path);
+        let record = make_record(&path);
 
-        ds.create(doc.clone()).unwrap();
-        let read_doc = ds.find_one(&path).unwrap();
+        ds.create(record.clone()).await.unwrap();
+        let read_record = ds.find_one(&path).await.unwrap();
 
-        assert_eq!(read_doc, doc);
+        assert_eq!(read_record, record);
     }
 
-    #[test]
-    fn test_exists() {
+    #[tokio::test]
+    async fn test_exists() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/test/file.txt"));
-        let doc = make_doc(&path);
+        let record = make_record(&path);
 
-        assert!(!ds.exists(&path).unwrap());
-        ds.create(doc).unwrap();
-        assert!(ds.exists(&path).unwrap());
+        assert!(!ds.exists(&path).await.unwrap());
+        ds.create(record).await.unwrap();
+        assert!(ds.exists(&path).await.unwrap());
     }
 
-    #[test]
-    fn test_count() {
+    #[tokio::test]
+    async fn test_count() {
         let ds = MemorySource::new();
         let path1 = Path::File(FilePath::parse("/test/file1.txt"));
         let path2 = Path::File(FilePath::parse("/test/file2.txt"));
         let path3 = Path::File(FilePath::parse("/other/file.txt"));
 
-        ds.create(make_doc(&path1)).unwrap();
-        ds.create(make_doc(&path2)).unwrap();
-        ds.create(make_doc(&path3)).unwrap();
+        ds.create(make_record(&path1)).await.unwrap();
+        ds.create(make_record(&path2)).await.unwrap();
+        ds.create(make_record(&path3)).await.unwrap();
 
         let test_path = Path::File(FilePath::parse("/test"));
-        assert_eq!(ds.count(&test_path).unwrap(), 2);
+        assert_eq!(ds.count(&test_path).await.unwrap(), 2);
     }
 
-    #[test]
-    fn test_find() {
+    #[tokio::test]
+    async fn test_find() {
         let ds = MemorySource::new();
         let path1 = Path::File(FilePath::parse("/test/file1.txt"));
         let path2 = Path::File(FilePath::parse("/test/file2.txt"));
         let path3 = Path::File(FilePath::parse("/other/file.txt"));
 
-        ds.create(make_doc(&path1)).unwrap();
-        ds.create(make_doc(&path2)).unwrap();
-        ds.create(make_doc(&path3)).unwrap();
+        ds.create(make_record(&path1)).await.unwrap();
+        ds.create(make_record(&path2)).await.unwrap();
+        ds.create(make_record(&path3)).await.unwrap();
 
         let test_path = Path::File(FilePath::parse("/test"));
-        let results = ds.find(&test_path).unwrap();
+        let results = ds.find(&test_path).await.unwrap();
         assert_eq!(results.len(), 2);
     }
 
-    #[test]
-    fn test_create_duplicate_fails() {
+    #[tokio::test]
+    async fn test_create_duplicate_fails() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/test/file.txt"));
-        let doc = make_doc(&path);
+        let record = make_record(&path);
 
-        ds.create(doc.clone()).unwrap();
-        let result = ds.create(doc);
+        ds.create(record.clone()).await.unwrap();
+        let result = ds.create(record).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_update() {
+    #[tokio::test]
+    async fn test_update() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/test/file.txt"));
-        let doc = make_doc(&path);
+        let record = make_record(&path);
 
-        ds.create(doc.clone()).unwrap();
-        ds.update(doc).unwrap();
+        ds.create(record.clone()).await.unwrap();
+        ds.update(record).await.unwrap();
     }
 
-    #[test]
-    fn test_update_not_found() {
+    #[tokio::test]
+    async fn test_update_not_found() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/test/file.txt"));
-        let doc = make_doc(&path);
+        let record = make_record(&path);
 
-        let result = ds.update(doc);
+        let result = ds.update(record).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_upsert() {
+    #[tokio::test]
+    async fn test_upsert() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/test/file.txt"));
-        let doc = make_doc(&path);
+        let record = make_record(&path);
 
-        // Works when doesn't exist
-        ds.upsert(doc.clone()).unwrap();
-        assert!(ds.exists(&path).unwrap());
+        ds.upsert(record.clone()).await.unwrap();
+        assert!(ds.exists(&path).await.unwrap());
 
-        // Works when exists
-        ds.upsert(doc).unwrap();
-        assert!(ds.exists(&path).unwrap());
+        ds.upsert(record).await.unwrap();
+        assert!(ds.exists(&path).await.unwrap());
     }
 
-    #[test]
-    fn test_delete() {
+    #[tokio::test]
+    async fn test_delete() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/test/file.txt"));
-        let doc = make_doc(&path);
+        let record = make_record(&path);
 
-        ds.create(doc).unwrap();
-        assert!(ds.exists(&path).unwrap());
+        ds.create(record).await.unwrap();
+        assert!(ds.exists(&path).await.unwrap());
 
-        ds.delete(&path).unwrap();
-        assert!(!ds.exists(&path).unwrap());
+        ds.delete(&path).await.unwrap();
+        assert!(!ds.exists(&path).await.unwrap());
     }
 
-    #[test]
-    fn test_delete_not_found() {
+    #[tokio::test]
+    async fn test_delete_not_found() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/nonexistent"));
-        let result = ds.delete(&path);
+        let result = ds.delete(&path).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_find_one_not_found() {
+    #[tokio::test]
+    async fn test_find_one_not_found() {
         let ds = MemorySource::new();
         let path = Path::File(FilePath::parse("/nonexistent"));
-        let result = ds.find_one(&path);
+        let result = ds.find_one(&path).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().is_custom());
     }

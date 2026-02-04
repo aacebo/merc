@@ -3,6 +3,7 @@ mod entity;
 mod error;
 mod etag;
 mod id;
+mod record;
 pub mod sources;
 
 pub use document::*;
@@ -10,19 +11,21 @@ pub use entity::*;
 pub use error::*;
 pub use etag::*;
 pub use id::*;
+pub use record::*;
 
-use crate::path::Path;
 use async_trait::async_trait;
 
-#[async_trait]
-pub trait DataSource {
-    fn exists(&self, path: &Path) -> Result<bool, ReadError>;
-    fn count(&self, path: &Path) -> Result<usize, ReadError>;
-    fn find_one(&self, path: &Path) -> Result<Document, ReadError>;
-    fn find(&self, path: &Path) -> Result<Vec<Document>, ReadError>;
+use crate::path::Path;
 
-    fn create(&self, document: Document) -> Result<(), WriteError>;
-    fn update(&self, document: Document) -> Result<(), WriteError>;
-    fn upsert(&self, document: Document) -> Result<(), WriteError>;
-    fn delete(&self, path: &Path) -> Result<(), WriteError>;
+#[async_trait]
+pub trait DataSource: Send + Sync {
+    async fn exists(&self, path: &Path) -> Result<bool, ReadError>;
+    async fn count(&self, path: &Path) -> Result<usize, ReadError>;
+    async fn find_one(&self, path: &Path) -> Result<Record, ReadError>;
+    async fn find(&self, path: &Path) -> Result<Vec<Record>, ReadError>;
+
+    async fn create(&self, record: Record) -> Result<(), WriteError>;
+    async fn update(&self, record: Record) -> Result<(), WriteError>;
+    async fn upsert(&self, record: Record) -> Result<(), WriteError>;
+    async fn delete(&self, path: &Path) -> Result<(), WriteError>;
 }

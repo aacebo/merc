@@ -1,6 +1,8 @@
 pub mod bench;
+pub mod codec;
 mod context;
 mod data_source;
+mod format;
 mod layer;
 mod map;
 mod media_type;
@@ -10,8 +12,10 @@ pub mod pipe;
 pub mod score;
 pub mod value;
 
+pub use codec::*;
 pub use context::*;
 pub use data_source::*;
+pub use format::*;
 pub use layer::*;
 pub use map::*;
 pub use media_type::*;
@@ -19,12 +23,16 @@ pub use options::*;
 
 pub struct Runtime {
     #[allow(unused)]
-    data_sources: Vec<Box<dyn DataSource>>,
+    codecs: Vec<Box<dyn Codec>>,
+
+    #[allow(unused)]
+    sources: Vec<Box<dyn DataSource>>,
 }
 
 #[derive(Default)]
 pub struct Builder {
-    data_sources: Vec<Box<dyn DataSource>>,
+    codecs: Vec<Box<dyn Codec>>,
+    sources: Vec<Box<dyn DataSource>>,
 }
 
 impl Builder {
@@ -32,14 +40,20 @@ impl Builder {
         Self::default()
     }
 
-    pub fn data_source<T: DataSource + 'static>(mut self, source: T) -> Self {
-        self.data_sources.push(Box::new(source));
+    pub fn codec<T: Codec + 'static>(mut self, codec: T) -> Self {
+        self.codecs.push(Box::new(codec));
+        self
+    }
+
+    pub fn source<T: DataSource + 'static>(mut self, source: T) -> Self {
+        self.sources.push(Box::new(source));
         self
     }
 
     pub fn build(self) -> Runtime {
         Runtime {
-            data_sources: self.data_sources,
+            codecs: self.codecs,
+            sources: self.sources,
         }
     }
 }

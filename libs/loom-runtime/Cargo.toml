@@ -31,3 +31,6 @@ saphyr = { workspace = true, optional = true }
 
 loom-error = { workspace = true }
 loom-sync = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }

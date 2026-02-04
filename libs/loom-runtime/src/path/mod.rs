@@ -39,7 +39,7 @@ macro_rules! path {
     };
 }
 
-#[derive(Debug, Clone, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub enum Path {
     File(FilePath),
     Uri(UriPath),

@@ -1,6 +1,6 @@
 pub use super::error::FieldPathError;
 
-#[derive(Debug, Clone, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct FieldPath(Vec<FieldSegment>);
 
 impl FieldPath {

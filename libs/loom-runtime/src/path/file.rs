@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 #[serde(transparent)]
 pub struct FilePath(std::path::PathBuf);
 
