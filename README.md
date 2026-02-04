@@ -1,4 +1,4 @@
-# LOOM
+# Loom
 
 **Layer-Oriented Orchestration Machine**
 
