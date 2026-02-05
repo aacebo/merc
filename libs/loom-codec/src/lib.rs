@@ -2,29 +2,29 @@ mod error;
 mod registry;
 
 #[cfg(feature = "json")]
-mod json_codec;
+mod json;
 
 #[cfg(feature = "yaml")]
-mod yaml_codec;
+mod yaml;
 
 #[cfg(feature = "toml")]
-mod toml_codec;
+mod toml;
 
-mod text_codec;
+mod text;
 
 pub use error::*;
 pub use registry::*;
 
 #[cfg(feature = "json")]
-pub use json_codec::*;
+pub use json::*;
 
 #[cfg(feature = "yaml")]
-pub use yaml_codec::*;
+pub use yaml::*;
 
 #[cfg(feature = "toml")]
-pub use toml_codec::*;
+pub use toml::*;
 
-pub use text_codec::*;
+pub use text::*;
 
 // Re-export types from dependencies
 pub use loom_core::{Format, MediaType, path, value};

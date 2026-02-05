@@ -8,6 +8,28 @@ pub struct CodecRegistry {
     codecs: HashMap<Format, Box<dyn Codec>>,
 }
 
+impl CodecRegistry {
+    pub fn new() -> CodecRegistryBuilder {
+        CodecRegistryBuilder::new()
+    }
+
+    pub fn len(&self) -> usize {
+        self.codecs.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.codecs.is_empty()
+    }
+
+    pub fn exists(&self, format: Format) -> bool {
+        self.codecs.contains_key(&format)
+    }
+
+    pub fn get(&self, format: Format) -> Option<&dyn Codec> {
+        self.codecs.get(&format).map(|c| c.as_ref())
+    }
+}
+
 #[derive(Default)]
 pub struct CodecRegistryBuilder {
     codecs: HashMap<Format, Box<dyn Codec>>,
@@ -27,27 +49,5 @@ impl CodecRegistryBuilder {
         CodecRegistry {
             codecs: self.codecs,
         }
-    }
-}
-
-impl CodecRegistry {
-    pub fn builder() -> CodecRegistryBuilder {
-        CodecRegistryBuilder::new()
-    }
-
-    pub fn get(&self, format: Format) -> Option<&dyn Codec> {
-        self.codecs.get(&format).map(|c| c.as_ref())
-    }
-
-    pub fn formats(&self) -> impl Iterator<Item = Format> + '_ {
-        self.codecs.keys().copied()
-    }
-
-    pub fn len(&self) -> usize {
-        self.codecs.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.codecs.is_empty()
     }
 }

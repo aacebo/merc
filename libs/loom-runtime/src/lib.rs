@@ -17,7 +17,7 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn builder() -> Builder {
+    pub fn new() -> Builder {
         Builder::new()
     }
 
@@ -41,12 +41,12 @@ impl Builder {
         Self::default()
     }
 
-    pub fn with_codec<T: loom_codec::Codec + 'static>(mut self, codec: T) -> Self {
+    pub fn codec<T: loom_codec::Codec + 'static>(mut self, codec: T) -> Self {
         self.codecs = self.codecs.codec(codec);
         self
     }
 
-    pub fn with_source<T: loom_io::DataSource + 'static>(mut self, source: T) -> Self {
+    pub fn source<T: loom_io::DataSource + 'static>(mut self, source: T) -> Self {
         self.sources = self.sources.source(source);
         self
     }
