@@ -6,8 +6,8 @@ pub use result::*;
 
 use std::collections::HashMap;
 
-use loom_cortex::bench::{Decision, Scorer, ScorerOutput};
 use loom_cortex::CortexModel;
+use loom_cortex::bench::{Decision, Scorer, ScorerOutput};
 use loom_error::{Error, ErrorCode};
 use loom_pipe::Build;
 
@@ -323,9 +323,10 @@ mod tests {
 
     #[cfg(feature = "int")]
     fn int_test_config() -> ScoreConfig {
-        use loom_cortex::CortexModelConfig;
+        use loom_cortex::config::{CortexModelConfig, CortexZeroShotConfig};
+
         ScoreConfig {
-            model: CortexModelConfig::default(),
+            model: CortexModelConfig::ZeroShotClassification(CortexZeroShotConfig::default()),
             threshold: 0.40,
             top_k: 2,
             modifiers: ScoreModifierConfig::default(),

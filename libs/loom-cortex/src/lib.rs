@@ -6,7 +6,6 @@ mod model_type;
 mod resource;
 
 pub use bench::*;
-pub use config::*;
 pub use device::*;
 pub use model::*;
 pub use model_type::*;

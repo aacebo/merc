@@ -6,7 +6,7 @@ pub use category::*;
 pub use label::*;
 pub use modifier::*;
 
-use loom_cortex::{CortexModelConfig, CortexZeroShotConfig};
+use loom_cortex::config::{CortexModelConfig, CortexZeroShotConfig};
 use loom_error::Result;
 
 use serde::{Deserialize, Serialize};

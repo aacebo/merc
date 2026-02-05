@@ -1,6 +1,7 @@
 use rust_bert::pipelines::*;
 
-use crate::{CortexModelType, CortexSentenceEmbeddingsModelType};
+use crate::CortexModelType;
+use crate::config::CortexSentenceEmbeddingsModelType;
 
 /// Unified model enum wrapping all rust_bert pipeline models
 pub enum CortexModel {
@@ -156,5 +157,122 @@ impl CortexModel {
 
     pub fn is_zero_shot_classification(&self) -> bool {
         matches!(self, Self::ZeroShotClassification { .. })
+    }
+}
+
+impl From<conversation::ConversationModel> for CortexModel {
+    fn from(model: conversation::ConversationModel) -> Self {
+        Self::Conversation {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<masked_language::MaskedLanguageModel> for CortexModel {
+    fn from(model: masked_language::MaskedLanguageModel) -> Self {
+        Self::MaskedLanguage {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<ner::NERModel> for CortexModel {
+    fn from(model: ner::NERModel) -> Self {
+        Self::Ner {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<pos_tagging::POSModel> for CortexModel {
+    fn from(model: pos_tagging::POSModel) -> Self {
+        Self::PosTagging {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<question_answering::QuestionAnsweringModel> for CortexModel {
+    fn from(model: question_answering::QuestionAnsweringModel) -> Self {
+        Self::QuestionAnswering {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<sentence_embeddings::SentenceEmbeddingsModel> for CortexModel {
+    fn from(model: sentence_embeddings::SentenceEmbeddingsModel) -> Self {
+        Self::SentenceEmbeddings {
+            model,
+            model_type: CortexSentenceEmbeddingsModelType::default(),
+        }
+    }
+}
+
+impl From<sentiment::SentimentModel> for CortexModel {
+    fn from(model: sentiment::SentimentModel) -> Self {
+        Self::Sentiment {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<sequence_classification::SequenceClassificationModel> for CortexModel {
+    fn from(model: sequence_classification::SequenceClassificationModel) -> Self {
+        Self::SequenceClassification {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<summarization::SummarizationModel> for CortexModel {
+    fn from(model: summarization::SummarizationModel) -> Self {
+        Self::Summarization {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<text_generation::TextGenerationModel> for CortexModel {
+    fn from(model: text_generation::TextGenerationModel) -> Self {
+        Self::TextGeneration {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<token_classification::TokenClassificationModel> for CortexModel {
+    fn from(model: token_classification::TokenClassificationModel) -> Self {
+        Self::TokenClassification {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<translation::TranslationModel> for CortexModel {
+    fn from(model: translation::TranslationModel) -> Self {
+        Self::Translation {
+            model,
+            model_type: CortexModelType::default(),
+        }
+    }
+}
+
+impl From<zero_shot_classification::ZeroShotClassificationModel> for CortexModel {
+    fn from(model: zero_shot_classification::ZeroShotClassificationModel) -> Self {
+        Self::ZeroShotClassification {
+            model,
+            model_type: CortexModelType::default(),
+        }
     }
 }

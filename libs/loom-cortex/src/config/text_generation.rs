@@ -1,10 +1,10 @@
-use rust_bert::pipelines::{summarization, text_generation};
+use rust_bert::pipelines::text_generation;
 use serde::{Deserialize, Serialize};
 
 use crate::{CortexDevice, CortexModelSource, CortexModelType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CortexGenerationConfig {
+pub struct CortexTextGenerationConfig {
     pub model: CortexModelType,
 
     #[serde(default)]
@@ -13,44 +13,44 @@ pub struct CortexGenerationConfig {
     #[serde(default)]
     pub device: CortexDevice,
 
-    #[serde(default = "CortexGenerationConfig::default_min_length")]
+    #[serde(default = "CortexTextGenerationConfig::default_min_length")]
     pub min_length: i64,
 
-    #[serde(default = "CortexGenerationConfig::default_max_length")]
+    #[serde(default = "CortexTextGenerationConfig::default_max_length")]
     pub max_length: Option<i64>,
 
     #[serde(default)]
     pub do_sample: bool,
 
-    #[serde(default = "CortexGenerationConfig::default_early_stopping")]
+    #[serde(default = "CortexTextGenerationConfig::default_early_stopping")]
     pub early_stopping: bool,
 
-    #[serde(default = "CortexGenerationConfig::default_num_beams")]
+    #[serde(default = "CortexTextGenerationConfig::default_num_beams")]
     pub num_beams: i64,
 
-    #[serde(default = "CortexGenerationConfig::default_temperature")]
+    #[serde(default = "CortexTextGenerationConfig::default_temperature")]
     pub temperature: f64,
 
-    #[serde(default = "CortexGenerationConfig::default_top_k")]
+    #[serde(default = "CortexTextGenerationConfig::default_top_k")]
     pub top_k: i64,
 
-    #[serde(default = "CortexGenerationConfig::default_top_p")]
+    #[serde(default = "CortexTextGenerationConfig::default_top_p")]
     pub top_p: f64,
 
-    #[serde(default = "CortexGenerationConfig::default_repetition_penalty")]
+    #[serde(default = "CortexTextGenerationConfig::default_repetition_penalty")]
     pub repetition_penalty: f64,
 
-    #[serde(default = "CortexGenerationConfig::default_length_penalty")]
+    #[serde(default = "CortexTextGenerationConfig::default_length_penalty")]
     pub length_penalty: f64,
 
-    #[serde(default = "CortexGenerationConfig::default_no_repeat_ngram_size")]
+    #[serde(default = "CortexTextGenerationConfig::default_no_repeat_ngram_size")]
     pub no_repeat_ngram_size: i64,
 
-    #[serde(default = "CortexGenerationConfig::default_num_return_sequences")]
+    #[serde(default = "CortexTextGenerationConfig::default_num_return_sequences")]
     pub num_return_sequences: i64,
 }
 
-impl CortexGenerationConfig {
+impl CortexTextGenerationConfig {
     fn default_min_length() -> i64 {
         0
     }
@@ -95,74 +95,34 @@ impl CortexGenerationConfig {
         1
     }
 
-    pub fn new(model: CortexModelType) -> CortexGenerationConfigBuilder {
-        CortexGenerationConfigBuilder::new(model)
-    }
-
-    pub fn into_summarization_config(self) -> summarization::SummarizationConfig {
-        summarization::SummarizationConfig {
-            model_type: self.model.into(),
-            device: self.device.into(),
-            min_length: self.min_length,
-            max_length: self.max_length,
-            do_sample: self.do_sample,
-            early_stopping: self.early_stopping,
-            num_beams: self.num_beams,
-            temperature: self.temperature,
-            top_k: self.top_k,
-            top_p: self.top_p,
-            repetition_penalty: self.repetition_penalty,
-            length_penalty: self.length_penalty,
-            no_repeat_ngram_size: self.no_repeat_ngram_size,
-            num_return_sequences: self.num_return_sequences,
-            ..Default::default()
-        }
-    }
-
-    pub fn into_text_generation_config(self) -> text_generation::TextGenerationConfig {
-        text_generation::TextGenerationConfig {
-            model_type: self.model.into(),
-            device: self.device.into(),
-            min_length: self.min_length,
-            max_length: self.max_length,
-            do_sample: self.do_sample,
-            early_stopping: self.early_stopping,
-            num_beams: self.num_beams,
-            temperature: self.temperature,
-            top_k: self.top_k,
-            top_p: self.top_p,
-            repetition_penalty: self.repetition_penalty,
-            length_penalty: self.length_penalty,
-            no_repeat_ngram_size: self.no_repeat_ngram_size,
-            num_return_sequences: self.num_return_sequences,
-            ..Default::default()
-        }
+    pub fn new(model: CortexModelType) -> CortexTextGenerationConfigBuilder {
+        CortexTextGenerationConfigBuilder::new(model)
     }
 }
 
-impl Default for CortexGenerationConfig {
+impl Default for CortexTextGenerationConfig {
     fn default() -> Self {
         Self {
-            model: CortexModelType::Bart,
+            model: CortexModelType::GPT2,
             source: CortexModelSource::Default,
             device: CortexDevice::default(),
-            min_length: 0,
-            max_length: Some(56),
+            min_length: Self::default_min_length(),
+            max_length: Self::default_max_length(),
             do_sample: false,
-            early_stopping: true,
-            num_beams: 5,
-            temperature: 1.0,
-            top_k: 50,
-            top_p: 1.0,
-            repetition_penalty: 1.0,
-            length_penalty: 1.0,
-            no_repeat_ngram_size: 3,
-            num_return_sequences: 1,
+            early_stopping: Self::default_early_stopping(),
+            num_beams: Self::default_num_beams(),
+            temperature: Self::default_temperature(),
+            top_k: Self::default_top_k(),
+            top_p: Self::default_top_p(),
+            repetition_penalty: Self::default_repetition_penalty(),
+            length_penalty: Self::default_length_penalty(),
+            no_repeat_ngram_size: Self::default_no_repeat_ngram_size(),
+            num_return_sequences: Self::default_num_return_sequences(),
         }
     }
 }
 
-pub struct CortexGenerationConfigBuilder {
+pub struct CortexTextGenerationConfigBuilder {
     model: CortexModelType,
     source: CortexModelSource,
     device: CortexDevice,
@@ -180,24 +140,24 @@ pub struct CortexGenerationConfigBuilder {
     num_return_sequences: i64,
 }
 
-impl CortexGenerationConfigBuilder {
+impl CortexTextGenerationConfigBuilder {
     pub fn new(model: CortexModelType) -> Self {
         Self {
             model,
             source: CortexModelSource::default(),
             device: CortexDevice::default(),
-            min_length: CortexGenerationConfig::default_min_length(),
-            max_length: CortexGenerationConfig::default_max_length(),
+            min_length: CortexTextGenerationConfig::default_min_length(),
+            max_length: CortexTextGenerationConfig::default_max_length(),
             do_sample: false,
-            early_stopping: CortexGenerationConfig::default_early_stopping(),
-            num_beams: CortexGenerationConfig::default_num_beams(),
-            temperature: CortexGenerationConfig::default_temperature(),
-            top_k: CortexGenerationConfig::default_top_k(),
-            top_p: CortexGenerationConfig::default_top_p(),
-            repetition_penalty: CortexGenerationConfig::default_repetition_penalty(),
-            length_penalty: CortexGenerationConfig::default_length_penalty(),
-            no_repeat_ngram_size: CortexGenerationConfig::default_no_repeat_ngram_size(),
-            num_return_sequences: CortexGenerationConfig::default_num_return_sequences(),
+            early_stopping: CortexTextGenerationConfig::default_early_stopping(),
+            num_beams: CortexTextGenerationConfig::default_num_beams(),
+            temperature: CortexTextGenerationConfig::default_temperature(),
+            top_k: CortexTextGenerationConfig::default_top_k(),
+            top_p: CortexTextGenerationConfig::default_top_p(),
+            repetition_penalty: CortexTextGenerationConfig::default_repetition_penalty(),
+            length_penalty: CortexTextGenerationConfig::default_length_penalty(),
+            no_repeat_ngram_size: CortexTextGenerationConfig::default_no_repeat_ngram_size(),
+            num_return_sequences: CortexTextGenerationConfig::default_num_return_sequences(),
         }
     }
 
@@ -271,8 +231,8 @@ impl CortexGenerationConfigBuilder {
         self
     }
 
-    pub fn build(self) -> CortexGenerationConfig {
-        CortexGenerationConfig {
+    pub fn build(self) -> CortexTextGenerationConfig {
+        CortexTextGenerationConfig {
             model: self.model,
             source: self.source,
             device: self.device,
@@ -288,6 +248,28 @@ impl CortexGenerationConfigBuilder {
             length_penalty: self.length_penalty,
             no_repeat_ngram_size: self.no_repeat_ngram_size,
             num_return_sequences: self.num_return_sequences,
+        }
+    }
+}
+
+impl From<CortexTextGenerationConfig> for text_generation::TextGenerationConfig {
+    fn from(config: CortexTextGenerationConfig) -> Self {
+        Self {
+            model_type: config.model.into(),
+            device: config.device.into(),
+            min_length: config.min_length,
+            max_length: config.max_length,
+            do_sample: config.do_sample,
+            early_stopping: config.early_stopping,
+            num_beams: config.num_beams,
+            temperature: config.temperature,
+            top_k: config.top_k,
+            top_p: config.top_p,
+            repetition_penalty: config.repetition_penalty,
+            length_penalty: config.length_penalty,
+            no_repeat_ngram_size: config.no_repeat_ngram_size,
+            num_return_sequences: config.num_return_sequences,
+            ..Default::default()
         }
     }
 }
