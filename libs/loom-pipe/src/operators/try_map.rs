@@ -31,3 +31,63 @@ where
         Source::new(move || (self.f)(src.build()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Pipe;
+
+    #[test]
+    fn success() {
+        let result = Source::from("42".to_string())
+            .pipe(TryMap::new(|s: String| {
+                s.parse::<i32>().map_err(|e| e.into())
+            }))
+            .build();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    #[test]
+    fn failure() {
+        let result = Source::from("not_a_number".to_string())
+            .pipe(TryMap::new(|s: String| {
+                s.parse::<i32>().map_err(|e| e.into())
+            }))
+            .build();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn with_custom_error() {
+        let result = Source::from(10)
+            .pipe(TryMap::new(|x: i32| {
+                if x > 5 {
+                    Ok(x * 2)
+                } else {
+                    Err(loom_error::Error::builder()
+                        .message("value too small")
+                        .build())
+                }
+            }))
+            .build();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 20);
+    }
+
+    #[test]
+    fn with_custom_error_failure() {
+        let result = Source::from(3)
+            .pipe(TryMap::new(|x: i32| {
+                if x > 5 {
+                    Ok(x * 2)
+                } else {
+                    Err(loom_error::Error::builder()
+                        .message("value too small")
+                        .build())
+                }
+            }))
+            .build();
+        assert!(result.is_err());
+    }
+}

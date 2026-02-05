@@ -58,3 +58,58 @@ where
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Pipe;
+    use crate::operators::{Filter, Guard};
+
+    #[test]
+    fn single_branch() {
+        let result = Source::from(5)
+            .pipe(FanOut::new().add(Guard::allow(|x| *x > 0)))
+            .build();
+        assert_eq!(result, vec![Some(5)]);
+    }
+
+    #[test]
+    fn multiple_branches() {
+        let result = Source::from(10)
+            .pipe(
+                FanOut::new()
+                    .add(Guard::allow(|x| *x > 5))
+                    .add(Guard::allow(|x| *x > 15))
+                    .add(Guard::block(|x| *x > 5)),
+            )
+            .build();
+        assert_eq!(result, vec![Some(10), None, None]);
+    }
+
+    #[test]
+    fn no_branches() {
+        let result = Source::from(42)
+            .pipe(FanOut::<i32, Option<i32>>::new())
+            .build();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn default_is_empty() {
+        let fan_out: FanOut<i32, Option<i32>> = FanOut::default();
+        let result = Source::from(42).pipe(fan_out).build();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn with_filter() {
+        let results = Source::from(vec![1, 2, 3, 4, 5])
+            .pipe(
+                FanOut::new()
+                    .add(Filter::new(|x| *x > 3))
+                    .add(Filter::new(|x| *x < 3)),
+            )
+            .build();
+        assert_eq!(results, vec![vec![4, 5], vec![1, 2]]);
+    }
+}

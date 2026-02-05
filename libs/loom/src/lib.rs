@@ -1,3 +1,6 @@
+#[cfg(feature = "assert")]
+pub use loom_assert as assert;
+
 #[cfg(feature = "core")]
 pub use loom_core as core;
 

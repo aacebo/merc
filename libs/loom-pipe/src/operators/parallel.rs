@@ -72,3 +72,128 @@ where
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Pipe;
+
+    #[test]
+    fn executes_all_branches() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let results = Source::from(10)
+            .pipe(Parallel::new().add(|x| x * 2).add(|x| x + 5).add(|x| x - 3))
+            .build();
+
+        assert_eq!(results.len(), 3);
+        assert!(results.iter().all(|r| r.is_ok()));
+
+        let values: Vec<i32> = results.into_iter().map(|r| r.unwrap()).collect();
+        assert_eq!(values, vec![20, 15, 7]);
+    }
+
+    #[test]
+    fn collects_all_results() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let results = Source::from(5)
+            .pipe(Parallel::new().add(|x| x * 2).add(|x| x * 3))
+            .build();
+
+        let values: Vec<i32> = results.into_iter().map(|r| r.unwrap()).collect();
+        assert_eq!(values, vec![10, 15]);
+    }
+
+    #[test]
+    fn no_branches() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let results = Source::from(42).pipe(Parallel::<i32, i32>::new()).build();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn default_is_empty() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let parallel: Parallel<i32, i32> = Parallel::default();
+        let results = Source::from(42).pipe(parallel).build();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn with_strings() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let results = Source::from("hello".to_string())
+            .pipe(
+                Parallel::new()
+                    .add(|s: String| s.to_uppercase())
+                    .add(|s: String| s.len().to_string()),
+            )
+            .build();
+
+        assert_eq!(results.len(), 2);
+        let values: Vec<String> = results.into_iter().map(|r| r.unwrap()).collect();
+        assert_eq!(values[0], "HELLO");
+        assert_eq!(values[1], "5");
+    }
+
+    #[test]
+    fn concurrent_execution() {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::thread;
+        use std::time::Duration;
+
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let counter = Arc::new(AtomicUsize::new(0));
+        let c1 = counter.clone();
+        let c2 = counter.clone();
+        let c3 = counter.clone();
+
+        let results = Source::from(())
+            .pipe(
+                Parallel::new()
+                    .add(move |_| {
+                        thread::sleep(Duration::from_millis(10));
+                        c1.fetch_add(1, Ordering::SeqCst);
+                        1
+                    })
+                    .add(move |_| {
+                        thread::sleep(Duration::from_millis(10));
+                        c2.fetch_add(1, Ordering::SeqCst);
+                        2
+                    })
+                    .add(move |_| {
+                        thread::sleep(Duration::from_millis(10));
+                        c3.fetch_add(1, Ordering::SeqCst);
+                        3
+                    }),
+            )
+            .build();
+
+        assert_eq!(results.len(), 3);
+        assert_eq!(counter.load(Ordering::SeqCst), 3);
+    }
+}

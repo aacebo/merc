@@ -17,3 +17,4 @@ loom-error = { workspace = true }
 loom-sync = { workspace = true, features = ["tokio"] }
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

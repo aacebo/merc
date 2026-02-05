@@ -15,7 +15,7 @@ repository = "https://www.github.com/aacebo/loom"
 [workspace.dependencies]
 # libs (public)
 loom = { path = "./libs/loom", version = "0.0.1" }
-loom-assert = { path = "./lib/loom-assert", version = "0.0.1" }
+loom-assert = { path = "./libs/loom-assert", version = "0.0.1" }
 loom-codec = { path = "./libs/loom-codec", version = "0.0.1" }
 loom-cortex = { path = "./libs/loom-cortex", version = "0.0.1" }
 loom-config = { path = "./libs/loom-config", version = "0.0.1" }

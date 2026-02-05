@@ -33,3 +33,55 @@ where
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Pipe;
+    use crate::operators::Spawn;
+
+    #[test]
+    fn waits_for_task() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let result = Source::from(5)
+            .pipe(Spawn::new(|x| x * 3))
+            .pipe(Await::new())
+            .build();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 15);
+    }
+
+    #[test]
+    fn with_chained_spawn() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let result = Source::from("test".to_string())
+            .pipe(Spawn::new(|s: String| s.len()))
+            .pipe(Await::new())
+            .build();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 4);
+    }
+
+    #[test]
+    fn default_impl() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let result = Source::from(10)
+            .pipe(Spawn::new(|x| x + 5))
+            .pipe(Await::default())
+            .build();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 15);
+    }
+}

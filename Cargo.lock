@@ -2334,6 +2334,7 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 name = "loom"
 version = "0.0.1"
 dependencies = [
+ "loom-assert",
  "loom-codec",
  "loom-config",
  "loom-core",
@@ -2430,6 +2431,7 @@ dependencies = [
  "loom-core",
  "loom-error",
  "loom-sync",
+ "tokio",
 ]
 
 [[package]]
