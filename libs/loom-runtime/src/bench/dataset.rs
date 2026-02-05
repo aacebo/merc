@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
-use crate::score::Label;
+use crate::score::ScoreConfig;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BenchDataset {
@@ -95,10 +95,19 @@ impl BenchDataset {
         fs::write(path.as_ref(), content).map_err(|e| format!("Failed to write file: {}", e))
     }
 
+    /// Validate the dataset. If a config is provided, also validates label names.
     pub fn validate(&self) -> Vec<ValidationError> {
+        self.validate_with_config(None)
+    }
+
+    /// Validate the dataset with optional config for label validation.
+    pub fn validate_with_config(&self, config: Option<&ScoreConfig>) -> Vec<ValidationError> {
         let mut errors = Vec::new();
         let mut seen_ids = HashSet::new();
-        let valid_labels: HashSet<String> = Label::all().iter().map(|l| l.to_string()).collect();
+
+        // Get valid labels from config if provided
+        let valid_labels: Option<HashSet<String>> =
+            config.map(|c| c.labels().iter().map(|l| l.name.clone()).collect());
 
         for sample in &self.samples {
             // Check for duplicate IDs
@@ -125,13 +134,15 @@ impl BenchDataset {
                 });
             }
 
-            // Validate label names
-            for label in &sample.expected_labels {
-                if !valid_labels.contains(label) {
-                    errors.push(ValidationError {
-                        sample_id: sample.id.clone(),
-                        message: format!("Invalid label: '{}'", label),
-                    });
+            // Validate label names if config provided
+            if let Some(ref valid) = valid_labels {
+                for label in &sample.expected_labels {
+                    if !valid.contains(label) {
+                        errors.push(ValidationError {
+                            sample_id: sample.id.clone(),
+                            message: format!("Invalid label: '{}'", label),
+                        });
+                    }
                 }
             }
         }
@@ -139,7 +150,13 @@ impl BenchDataset {
         errors
     }
 
+    /// Get coverage report. If a config is provided, also reports missing labels.
     pub fn coverage(&self) -> CoverageReport {
+        self.coverage_with_config(None)
+    }
+
+    /// Get coverage report with optional config for missing label detection.
+    pub fn coverage_with_config(&self, config: Option<&ScoreConfig>) -> CoverageReport {
         let mut report = CoverageReport {
             total_samples: self.samples.len(),
             ..Default::default()
@@ -164,15 +181,15 @@ impl BenchDataset {
             }
         }
 
-        // Find missing labels
-        let all_labels: HashSet<String> = Label::all().iter().map(|l| l.to_string()).collect();
-
-        for label in all_labels {
-            if !report.samples_by_label.contains_key(&label) {
-                report.missing_labels.push(label);
+        // Find missing labels if config provided
+        if let Some(config) = config {
+            for label_config in config.labels() {
+                if !report.samples_by_label.contains_key(&label_config.name) {
+                    report.missing_labels.push(label_config.name.clone());
+                }
             }
+            report.missing_labels.sort();
         }
-        report.missing_labels.sort();
 
         report
     }
@@ -243,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn dataset_validate_catches_invalid_labels() {
+    fn dataset_validate_catches_invalid_labels_with_config() {
         let mut dataset = BenchDataset::new();
         dataset.samples.push(BenchSample {
             id: "test-001".to_string(),
@@ -256,7 +273,8 @@ mod tests {
             notes: None,
         });
 
-        let errors = dataset.validate();
+        let config = ScoreConfig::default();
+        let errors = dataset.validate_with_config(Some(&config));
         assert!(errors.iter().any(|e| e.message.contains("Invalid label")));
     }
 

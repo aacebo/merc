@@ -1,8 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
-
-use rust_bert::pipelines::sequence_classification;
-
-use crate::score::{Label, LabelCategory};
+use crate::score::ScoreLabelConfig;
 
 /// Apply Platt scaling to calibrate raw model scores.
 /// P(y|x) = 1 / (1 + exp(-Ax - B))
@@ -36,68 +32,36 @@ impl ScoreResult {
         }
     }
 
-    pub fn category(&self, label: LabelCategory) -> &ScoreCategory {
-        self.categories.iter().find(|v| v.label == label).unwrap()
+    pub fn category(&self, name: &str) -> Option<&ScoreCategory> {
+        self.categories.iter().find(|v| v.name == name)
     }
 
-    pub fn category_mut(&mut self, label: LabelCategory) -> &mut ScoreCategory {
-        self.categories
-            .iter_mut()
-            .find(|v| v.label == label)
-            .unwrap()
+    pub fn category_mut(&mut self, name: &str) -> Option<&mut ScoreCategory> {
+        self.categories.iter_mut().find(|v| v.name == name)
     }
 
     pub fn labels(&self) -> Vec<&ScoreLabel> {
         self.categories.iter().flat_map(|v| &v.labels).collect()
     }
 
-    pub fn label(&self, label: Label) -> &ScoreLabel {
-        self.labels().iter().find(|l| l.label == label).unwrap()
+    pub fn label(&self, name: &str) -> Option<&ScoreLabel> {
+        self.labels().into_iter().find(|l| l.name == name)
     }
 
-    pub fn label_score(&self, label: Label) -> f32 {
-        self.labels()
-            .iter()
-            .find(|l| l.label == label)
-            .map(|l| l.score)
-            .unwrap_or_default()
-    }
-}
-
-impl From<Vec<Vec<sequence_classification::Label>>> for ScoreResult {
-    fn from(lines: Vec<Vec<sequence_classification::Label>>) -> Self {
-        let mut categories: HashMap<LabelCategory, Vec<ScoreLabel>> = HashMap::new();
-
-        for line in &lines {
-            for class in line {
-                if let Ok(label) = Label::from_str(&class.text) {
-                    let labels = categories.entry(label.category()).or_insert(vec![]);
-                    labels.push(
-                        ScoreLabel::new(label, class.sentence).with_score(class.score as f32),
-                    );
-                }
-            }
-        }
-
-        let mut arr = vec![];
-
-        for (label, labels) in categories {
-            arr.push(ScoreCategory::topk(label, labels, 2));
-        }
-
-        Self::new(arr)
+    pub fn label_score(&self, name: &str) -> f32 {
+        self.label(name).map(|l| l.score).unwrap_or_default()
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct ScoreCategory {
-    pub label: LabelCategory,
+    pub name: String,
     pub score: f32,
     pub labels: Vec<ScoreLabel>,
 }
 
 impl ScoreCategory {
-    pub fn topk(label: LabelCategory, labels: Vec<ScoreLabel>, k: usize) -> Self {
+    pub fn topk(name: String, labels: Vec<ScoreLabel>, k: usize) -> Self {
         let take = k.min(labels.len()).max(1);
         let mut list = labels.clone();
         let mut score = 0.0f32;
@@ -114,7 +78,7 @@ impl ScoreCategory {
         }
 
         Self {
-            label,
+            name,
             score: if top.is_empty() {
                 0.0
             } else {
@@ -127,43 +91,43 @@ impl ScoreCategory {
 
 #[derive(Debug, Clone)]
 pub struct ScoreLabel {
-    pub label: Label,
+    pub name: String,
+    pub category: String,
     pub score: f32,
     pub raw_score: f32,
     pub sentence: usize,
 }
 
 impl ScoreLabel {
-    pub fn new(label: Label, sentence: usize) -> Self {
+    pub fn new(name: String, category: String, sentence: usize) -> Self {
         Self {
-            label,
+            name,
+            category,
             score: 0.0,
             raw_score: 0.0,
             sentence,
         }
     }
 
-    pub fn with_score(mut self, raw_score: f32) -> Self {
+    pub fn with_score(mut self, raw_score: f32, config: &ScoreLabelConfig) -> Self {
         self.raw_score = raw_score;
-        let calibrated = calibrate(raw_score, self.label.platt_a(), self.label.platt_b());
-        if calibrated >= self.label.threshold() {
-            self.score = calibrated * self.label.weight();
+        let calibrated = calibrate(raw_score, config.platt_a, config.platt_b);
+        if calibrated >= config.threshold {
+            self.score = calibrated * config.weight;
         }
-
         self
     }
 
-    pub fn ignore(&self) -> bool {
-        self.score < self.label.threshold()
+    pub fn ignore(&self, threshold: f32) -> bool {
+        self.score < threshold
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::score::{ContextLabel, SentimentLabel};
 
-    // === MERC-002: Platt Calibration Tests ===
+    // === Platt Calibration Tests ===
 
     #[test]
     fn calibrate_identity_params_returns_raw() {
@@ -287,15 +251,23 @@ mod tests {
         );
     }
 
-    // === ScoreLabel Integration Tests ===
+    // === ScoreLabel Tests ===
 
     #[test]
     fn score_label_applies_calibration() {
-        let label = Label::Sentiment(SentimentLabel::Positive);
-        let score_label = ScoreLabel::new(label, 0).with_score(0.8);
+        let config = ScoreLabelConfig {
+            name: "positive".to_string(),
+            hypothesis: "test".to_string(),
+            weight: 0.30,
+            threshold: 0.70,
+            platt_a: 1.0,
+            platt_b: 0.0,
+        };
+        let score_label = ScoreLabel::new("positive".to_string(), "sentiment".to_string(), 0)
+            .with_score(0.8, &config);
         // With identity calibration (a=1.0, b=0.0), raw score passes through
         // Score = calibrated * weight = 0.8 * 0.30 = 0.24 (if above threshold 0.70)
-        let expected = 0.8 * label.weight();
+        let expected = 0.8 * config.weight;
         assert!(
             (score_label.score - expected).abs() < 0.001,
             "Expected {}, got {}",
@@ -306,8 +278,16 @@ mod tests {
 
     #[test]
     fn score_label_below_threshold_zeroes_score() {
-        let label = Label::Sentiment(SentimentLabel::Positive); // threshold = 0.70
-        let score_label = ScoreLabel::new(label, 0).with_score(0.5); // Below 0.70
+        let config = ScoreLabelConfig {
+            name: "positive".to_string(),
+            hypothesis: "test".to_string(),
+            weight: 0.30,
+            threshold: 0.70,
+            platt_a: 1.0,
+            platt_b: 0.0,
+        };
+        let score_label = ScoreLabel::new("positive".to_string(), "sentiment".to_string(), 0)
+            .with_score(0.5, &config);
         assert!(
             (score_label.score - 0.0).abs() < f32::EPSILON,
             "Score below threshold should be 0, got {}",
@@ -317,34 +297,22 @@ mod tests {
 
     #[test]
     fn score_label_at_threshold_passes() {
-        let label = Label::Context(ContextLabel::Task); // threshold = 0.65
-        let score_label = ScoreLabel::new(label, 0).with_score(0.65);
-        let expected = 0.65 * label.weight();
+        let config = ScoreLabelConfig {
+            name: "task".to_string(),
+            hypothesis: "test".to_string(),
+            weight: 1.00,
+            threshold: 0.65,
+            platt_a: 1.0,
+            platt_b: 0.0,
+        };
+        let score_label =
+            ScoreLabel::new("task".to_string(), "context".to_string(), 0).with_score(0.65, &config);
+        let expected = 0.65 * config.weight;
         assert!(
             (score_label.score - expected).abs() < 0.001,
             "Score at threshold should pass: expected {}, got {}",
             expected,
             score_label.score
-        );
-    }
-
-    #[test]
-    fn score_label_below_threshold_has_zero_score() {
-        let label = Label::Sentiment(SentimentLabel::Neutral);
-        let score_label = ScoreLabel::new(label, 0).with_score(0.5);
-        assert!(
-            score_label.score == 0.0,
-            "Score below threshold should be exactly 0.0"
-        );
-    }
-
-    #[test]
-    fn score_label_above_threshold_has_weighted_score() {
-        let label = Label::Sentiment(SentimentLabel::Positive);
-        let score_label = ScoreLabel::new(label, 0).with_score(0.85);
-        assert!(
-            score_label.score > 0.0,
-            "Score above threshold should have positive weighted score"
         );
     }
 }

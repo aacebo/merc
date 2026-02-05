@@ -1,17 +1,14 @@
-mod category;
-mod label;
+mod config;
 mod options;
 mod result;
-mod threshold;
 
-pub use category::*;
-pub use label::*;
+pub use config::*;
 pub use options::*;
 pub use result::*;
 
-use crate::threshold;
-use loom_pipe::Build;
+use std::collections::HashMap;
 
+use loom_pipe::Build;
 use rust_bert::pipelines::zero_shot_classification;
 
 use loom_error::{Error, ErrorCode};
@@ -20,9 +17,22 @@ use crate::{Context, LayerResult};
 
 pub struct ScoreLayer {
     model: zero_shot_classification::ZeroShotClassificationModel,
+    config: ScoreConfig,
 }
 
 impl ScoreLayer {
+    pub(crate) fn new(
+        model: zero_shot_classification::ZeroShotClassificationModel,
+        config: ScoreConfig,
+    ) -> Self {
+        Self { model, config }
+    }
+
+    /// Get the configuration for this layer
+    pub fn config(&self) -> &ScoreConfig {
+        &self.config
+    }
+
     /// Invoke the score layer directly with a context reference.
     /// This is useful for benchmarking and other cases where you need to reuse the layer.
     pub fn invoke<Input>(
@@ -30,18 +40,97 @@ impl ScoreLayer {
         ctx: Context<Input>,
     ) -> loom_error::Result<LayerResult<ScoreResult>> {
         let started_at = chrono::Utc::now();
-        let mut result = LayerResult::new(ScoreResult::new(vec![
-            LabelCategory::Sentiment.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
-            LabelCategory::Emotion.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
-            LabelCategory::Outcome.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
-            LabelCategory::Context.evalute(&vec![ctx.text.as_str()], &self.model, 2)?,
-        ]));
 
-        let effective_threshold = threshold!(&ctx.text);
+        // Get all label names from config
+        let label_names: Vec<&str> = self
+            .config
+            .categories
+            .iter()
+            .flat_map(|c| c.labels.iter().map(|l| l.name.as_str()))
+            .collect();
 
-        if result.output.score < effective_threshold
-            || result.output.label_score(ContextLabel::Phatic.into()) >= 0.8
-        {
+        // Build a static hypothesis map for the closure
+        let hypothesis_map: std::collections::HashMap<String, String> = self
+            .config
+            .categories
+            .iter()
+            .flat_map(|c| {
+                c.labels
+                    .iter()
+                    .map(|l| (l.name.clone(), l.hypothesis.clone()))
+            })
+            .collect();
+
+        // Create hypothesis function using the cloned map
+        let hypothesis_fn = Box::new(move |label: &str| {
+            hypothesis_map
+                .get(label)
+                .cloned()
+                .unwrap_or_else(|| format!("This example is {}.", label))
+        });
+
+        // Run zero-shot classification
+        let predictions = self.model.predict_multilabel(
+            &[ctx.text.as_str()],
+            &label_names,
+            Some(hypothesis_fn),
+            128,
+        )?;
+
+        // Build a lookup map for predictions by label name
+        let mut prediction_map: HashMap<&str, f32> = HashMap::new();
+        for sentence_predictions in &predictions {
+            for pred in sentence_predictions {
+                prediction_map.insert(
+                    label_names
+                        .iter()
+                        .find(|&&n| n == pred.text)
+                        .copied()
+                        .unwrap_or(&pred.text),
+                    pred.score as f32,
+                );
+            }
+        }
+
+        // Build ScoreCategory for each category in config
+        let mut categories = Vec::new();
+        for cat_config in &self.config.categories {
+            let mut labels = Vec::new();
+
+            for label_config in &cat_config.labels {
+                let raw_score = prediction_map
+                    .get(label_config.name.as_str())
+                    .copied()
+                    .unwrap_or(0.0);
+
+                let score_label = ScoreLabel::new(
+                    label_config.name.clone(),
+                    cat_config.name.clone(),
+                    0, // sentence index
+                )
+                .with_score(raw_score, label_config);
+
+                labels.push(score_label);
+            }
+
+            let top_k = cat_config.top_k;
+            categories.push(ScoreCategory::topk(cat_config.name.clone(), labels, top_k));
+        }
+
+        let mut result = LayerResult::new(ScoreResult::new(categories));
+
+        // Compute effective threshold based on text length
+        let effective_threshold = self.config.threshold_of(ctx.text.len());
+
+        // Check for phatic content (special case)
+        let phatic_score = result.output.label_score("phatic");
+        let phatic_threshold = self
+            .config
+            .label("phatic")
+            .map(|l| l.threshold)
+            .unwrap_or(0.80);
+
+        if result.output.score < effective_threshold || phatic_score >= phatic_threshold {
             return Err(Error::builder()
                 .code(ErrorCode::Cancel)
                 .message(&format!(
@@ -51,6 +140,7 @@ impl ScoreLayer {
                 .build());
         }
 
+        // Add timing metadata
         let elapse = chrono::Utc::now() - started_at;
         let mut elapse_message = format!("{}ms", elapse.num_milliseconds());
 
@@ -83,20 +173,182 @@ impl<Input: 'static> loom_pipe::Operator<Context<Input>> for ScoreLayer {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "int")]
-    use loom_error::{ErrorCode, Result};
+    use super::*;
+
+    // === ScoreConfig Threshold Tests ===
+
+    #[test]
+    fn threshold_short_text_lowers_threshold() {
+        let config = ScoreConfig::default();
+        let result = config.threshold_of(10);
+        assert!(
+            (result - 0.70).abs() < f32::EPSILON,
+            "Expected 0.70, got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn threshold_medium_text_unchanged() {
+        let config = ScoreConfig::default();
+        let result = config.threshold_of(100);
+        assert!(
+            (result - 0.75).abs() < f32::EPSILON,
+            "Expected 0.75, got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn threshold_long_text_raises_threshold() {
+        let config = ScoreConfig::default();
+        let result = config.threshold_of(250);
+        assert!(
+            (result - 0.80).abs() < f32::EPSILON,
+            "Expected 0.80, got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn threshold_boundary_20_chars() {
+        let config = ScoreConfig::default();
+        let result = config.threshold_of(20);
+        assert!(
+            (result - 0.70).abs() < f32::EPSILON,
+            "20 chars should be short, expected 0.70, got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn threshold_boundary_21_chars() {
+        let config = ScoreConfig::default();
+        let result = config.threshold_of(21);
+        assert!(
+            (result - 0.75).abs() < f32::EPSILON,
+            "21 chars should be medium, expected 0.75, got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn threshold_boundary_200_chars() {
+        let config = ScoreConfig::default();
+        let result = config.threshold_of(200);
+        assert!(
+            (result - 0.75).abs() < f32::EPSILON,
+            "200 chars should be medium, expected 0.75, got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn threshold_boundary_201_chars() {
+        let config = ScoreConfig::default();
+        let result = config.threshold_of(201);
+        assert!(
+            (result - 0.80).abs() < f32::EPSILON,
+            "201 chars should be long, expected 0.80, got {}",
+            result
+        );
+    }
+
+    #[test]
+    fn threshold_empty_text() {
+        let config = ScoreConfig::default();
+        let result = config.threshold_of(0);
+        assert!(
+            (result - 0.70).abs() < f32::EPSILON,
+            "Empty text should be short, expected 0.70, got {}",
+            result
+        );
+    }
+
+    // === Integration Tests (require model) ===
 
     #[cfg(feature = "int")]
-    use crate::{Context, score::ScoreOptions};
+    use crate::Context;
+    #[cfg(feature = "int")]
+    use loom_error::{ErrorCode, Result};
     #[cfg(feature = "int")]
     use loom_pipe::Source;
+
+    #[cfg(feature = "int")]
+    fn int_test_config() -> ScoreConfig {
+        ScoreConfig {
+            threshold: 0.40,
+            top_k: 2,
+            modifiers: ScoreModifierConfig::default(),
+            categories: vec![
+                ScoreCategoryConfig {
+                    name: "sentiment".to_string(),
+                    top_k: 2,
+                    labels: vec![
+                        ScoreLabelConfig {
+                            name: "positive".to_string(),
+                            hypothesis: "The speaker is expressing a positive, happy, or optimistic sentiment.".to_string(),
+                            weight: 0.30,
+                            threshold: 0.70,
+                            platt_a: 1.0,
+                            platt_b: 0.0,
+                        },
+                        ScoreLabelConfig {
+                            name: "negative".to_string(),
+                            hypothesis: "The speaker is expressing a negative, unhappy, or pessimistic sentiment.".to_string(),
+                            weight: 0.35,
+                            threshold: 0.70,
+                            platt_a: 1.0,
+                            platt_b: 0.0,
+                        },
+                    ],
+                },
+                ScoreCategoryConfig {
+                    name: "emotion".to_string(),
+                    top_k: 2,
+                    labels: vec![
+                        ScoreLabelConfig {
+                            name: "stress".to_string(),
+                            hypothesis: "The speaker is feeling stressed, overwhelmed, or under pressure.".to_string(),
+                            weight: 0.45,
+                            threshold: 0.70,
+                            platt_a: 1.0,
+                            platt_b: 0.0,
+                        },
+                    ],
+                },
+                ScoreCategoryConfig {
+                    name: "context".to_string(),
+                    top_k: 2,
+                    labels: vec![
+                        ScoreLabelConfig {
+                            name: "phatic".to_string(),
+                            hypothesis: "This is just social pleasantry, small talk, or acknowledgment with no substantive information.".to_string(),
+                            weight: 0.40,
+                            threshold: 0.80,
+                            platt_a: 1.0,
+                            platt_b: 0.0,
+                        },
+                        ScoreLabelConfig {
+                            name: "task".to_string(),
+                            hypothesis: "The speaker is describing something they need to do, remember, or a task to complete.".to_string(),
+                            weight: 1.00,
+                            threshold: 0.65,
+                            platt_a: 1.0,
+                            platt_b: 0.0,
+                        },
+                    ],
+                },
+            ],
+        }
+    }
 
     #[cfg(feature = "int")]
     #[test]
     fn should_cancel() -> Result<()> {
         use loom_pipe::{Build, Pipe};
 
-        let layer = ScoreOptions::new().build()?;
+        let layer = ScoreOptions::new().with_config(int_test_config()).build()?;
         let context = Context::new("hi how are you?", ());
         let res = Source::from(context).pipe(layer).build();
 
@@ -114,103 +366,11 @@ mod tests {
     fn should_be_stressed() -> Result<()> {
         use loom_pipe::{Build, Pipe};
 
-        let layer = ScoreOptions::new().build()?;
+        let layer = ScoreOptions::new().with_config(int_test_config()).build()?;
         let context = Context::new("oh my god, I'm going to be late for work!", ());
         let res = Source::from(context).pipe(layer).build()?;
 
         println!("{:#?}", &res);
         Ok(())
-    }
-
-    // === LOOM-003: Dynamic Threshold Tests ===
-
-    use crate::threshold;
-
-    #[test]
-    fn threshold_short_text_lowers_threshold() {
-        let result: f32 = threshold!("hi");
-        assert!(
-            (result - 0.70).abs() < f32::EPSILON,
-            "Expected 0.70, got {}",
-            result
-        );
-    }
-
-    #[test]
-    fn threshold_medium_text_unchanged() {
-        let result: f32 =
-            threshold!("This is a medium length text that has more than twenty characters.");
-        assert!(
-            (result - 0.75).abs() < f32::EPSILON,
-            "Expected 0.75, got {}",
-            result
-        );
-    }
-
-    #[test]
-    fn threshold_long_text_raises_threshold() {
-        let long = "x".repeat(250);
-        let result: f32 = threshold!(&long);
-        assert!(
-            (result - 0.80).abs() < f32::EPSILON,
-            "Expected 0.80, got {}",
-            result
-        );
-    }
-
-    #[test]
-    fn threshold_boundary_20_chars() {
-        let exactly_20 = "12345678901234567890";
-        assert_eq!(exactly_20.len(), 20);
-        let result: f32 = threshold!(exactly_20);
-        assert!(
-            (result - 0.70).abs() < f32::EPSILON,
-            "20 chars should be short, expected 0.70, got {}",
-            result
-        );
-    }
-
-    #[test]
-    fn threshold_boundary_21_chars() {
-        let exactly_21 = "123456789012345678901";
-        assert_eq!(exactly_21.len(), 21);
-        let result: f32 = threshold!(exactly_21);
-        assert!(
-            (result - 0.75).abs() < f32::EPSILON,
-            "21 chars should be medium, expected 0.75, got {}",
-            result
-        );
-    }
-
-    #[test]
-    fn threshold_boundary_200_chars() {
-        let exactly_200 = "x".repeat(200);
-        let result: f32 = threshold!(&exactly_200);
-        assert!(
-            (result - 0.75).abs() < f32::EPSILON,
-            "200 chars should be medium, expected 0.75, got {}",
-            result
-        );
-    }
-
-    #[test]
-    fn threshold_boundary_201_chars() {
-        let exactly_201 = "x".repeat(201);
-        let result: f32 = threshold!(&exactly_201);
-        assert!(
-            (result - 0.80).abs() < f32::EPSILON,
-            "201 chars should be long, expected 0.80, got {}",
-            result
-        );
-    }
-
-    #[test]
-    fn threshold_empty_text() {
-        let result: f32 = threshold!("");
-        assert!(
-            (result - 0.70).abs() < f32::EPSILON,
-            "Empty text should be short, expected 0.70, got {}",
-            result
-        );
     }
 }

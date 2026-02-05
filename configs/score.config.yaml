@@ -1,0 +1,184 @@
+# Score Configuration
+# Root configuration for the scoring engine
+
+threshold: 0.75
+top_k: 2
+
+modifiers:
+  short_text_delta: 0.05
+  long_text_delta: 0.05
+  short_text_limit: 20
+  long_text_limit: 200
+
+categories:
+  - name: sentiment
+    top_k: 2
+    labels:
+      - name: positive
+        hypothesis: "The speaker is expressing a positive, happy, or optimistic sentiment."
+        weight: 0.30
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: negative
+        hypothesis: "The speaker is expressing a negative, unhappy, or pessimistic sentiment."
+        weight: 0.35
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: neutral
+        hypothesis: "The speaker is expressing a neutral or matter-of-fact sentiment without strong emotion."
+        weight: 0.10
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+
+  - name: emotion
+    top_k: 2
+    labels:
+      - name: joy
+        hypothesis: "The speaker is feeling joyful, happy, or excited about something."
+        weight: 0.30
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: fear
+        hypothesis: "The speaker is feeling afraid, anxious, or worried about something."
+        weight: 0.40
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: shame
+        hypothesis: "The speaker is feeling ashamed, embarrassed, or guilty about something."
+        weight: 0.35
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: pride
+        hypothesis: "The speaker is feeling proud, accomplished, or satisfied with an achievement."
+        weight: 0.30
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: stress
+        hypothesis: "The speaker is feeling stressed, overwhelmed, or under pressure."
+        weight: 0.45
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: anger
+        hypothesis: "The speaker is feeling angry, frustrated, or irritated about something."
+        weight: 0.40
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: sad
+        hypothesis: "The speaker is feeling sad, upset, or grieving about something."
+        weight: 0.40
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+
+  - name: outcome
+    top_k: 2
+    labels:
+      - name: success
+        hypothesis: "The speaker is describing a success, achievement, or accomplishment."
+        weight: 0.55
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: failure
+        hypothesis: "The speaker is describing a failure, setback, or something that went wrong."
+        weight: 0.55
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: reward
+        hypothesis: "The speaker is describing receiving a reward, benefit, or positive outcome."
+        weight: 0.45
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: punishment
+        hypothesis: "The speaker is describing a punishment, penalty, or negative consequence."
+        weight: 0.45
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: decision
+        hypothesis: "The speaker has made or is announcing a decision or choice."
+        weight: 0.80
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: progress
+        hypothesis: "The speaker is describing progress, completion, or forward movement on something."
+        weight: 0.65
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: conflict
+        hypothesis: "The speaker is describing a disagreement, conflict, argument, or interpersonal tension."
+        weight: 0.65
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+
+  - name: context
+    top_k: 2
+    labels:
+      - name: fact
+        hypothesis: "The speaker is stating a factual piece of information that should be remembered."
+        weight: 0.80
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: time
+        hypothesis: "The speaker is mentioning a specific time, date, or deadline."
+        weight: 0.55
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: place
+        hypothesis: "The speaker is mentioning a specific location, place, or address."
+        weight: 0.55
+        threshold: 0.70
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: entity
+        hypothesis: "The speaker is mentioning a specific named person, organization, or entity."
+        weight: 0.65
+        threshold: 0.75
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: phatic
+        hypothesis: "This is just social pleasantry, small talk, or acknowledgment with no substantive information."
+        weight: 0.40
+        threshold: 0.80
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: preference
+        hypothesis: "The speaker is expressing a personal preference, like, dislike, or opinion."
+        weight: 0.85
+        threshold: 0.65
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: plan
+        hypothesis: "The speaker is describing a plan, intention, or commitment to do something."
+        weight: 0.90
+        threshold: 0.65
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: goal
+        hypothesis: "The speaker is describing a goal, objective, aspiration, or something they want to achieve."
+        weight: 0.90
+        threshold: 0.65
+        platt_a: 1.0
+        platt_b: 0.0
+      - name: task
+        hypothesis: "The speaker is describing something they need to do, remember, or a task to complete."
+        weight: 1.00
+        threshold: 0.65
+        platt_a: 1.0
+        platt_b: 0.0

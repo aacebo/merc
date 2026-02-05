@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::Context;
-use crate::score::{Label, ScoreLayer, ScoreOptions, ScoreResult};
+use crate::score::{ScoreLayer, ScoreOptions, ScoreResult};
 
 use super::dataset::{BenchDataset, BenchSample, Category, Decision};
 
@@ -239,7 +239,7 @@ fn extract_detected_labels(score_result: &ScoreResult) -> Vec<String> {
         .labels()
         .iter()
         .filter(|l| l.score > 0.0)
-        .map(|l| l.label.to_string())
+        .map(|l| l.name.clone())
         .collect()
 }
 
@@ -307,15 +307,15 @@ pub fn export_raw_scores(
         let ctx = Context::new(&sample.text, ());
         let mut scores = HashMap::new();
 
-        // Initialize all labels with 0.0
-        for label in Label::all() {
-            scores.insert(label.to_string(), 0.0);
+        // Initialize all labels with 0.0 from config
+        for label_config in layer.config().labels() {
+            scores.insert(label_config.name.clone(), 0.0);
         }
 
         // Run scoring and collect raw scores
         if let Ok(layer_result) = layer.invoke(ctx) {
             for score_label in layer_result.output.labels() {
-                scores.insert(score_label.label.to_string(), score_label.raw_score);
+                scores.insert(score_label.name.clone(), score_label.raw_score);
             }
         }
 

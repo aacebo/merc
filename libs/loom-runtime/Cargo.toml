@@ -29,6 +29,7 @@ blake3 = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
+serde_valid = { workspace = true }
 saphyr = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 
