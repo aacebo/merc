@@ -1,6 +1,6 @@
 use loom_sync::tasks::{Task, TaskError, TaskResult};
 
-use crate::{Build, Operator, Source};
+use crate::{Build, Operator, Pipe, Source};
 
 /// Parallel: execute multiple operators concurrently using tasks
 /// Unlike FanOut which executes sequentially, Parallel spawns tasks for each branch
@@ -70,6 +70,71 @@ where
                 })
                 .collect()
         })
+    }
+}
+
+/// Extension trait for starting parallel execution
+pub trait ParallelPipe<T>: Pipe<T> + Sized
+where
+    T: Clone + Send + 'static,
+{
+    fn parallel<O: Send + 'static>(self) -> ParallelBuilder<T, O, Self> {
+        ParallelBuilder::new(self)
+    }
+}
+
+impl<T: Clone + Send + 'static, P: Pipe<T> + Sized> ParallelPipe<T> for P {}
+
+/// Builder for parallel execution that implements Build and Pipe
+pub struct ParallelBuilder<T, O, P> {
+    source: P,
+    parallel: Parallel<T, O>,
+}
+
+impl<T, O, P> ParallelBuilder<T, O, P>
+where
+    T: Clone + Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    fn new(source: P) -> Self {
+        Self {
+            source,
+            parallel: Parallel::new(),
+        }
+    }
+
+    /// Spawn a new parallel branch
+    pub fn spawn<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(T) -> O + Send + 'static,
+    {
+        self.parallel = self.parallel.add(f);
+        self
+    }
+}
+
+impl<T, O, P> Build for ParallelBuilder<T, O, P>
+where
+    T: Clone + Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    type Output = Vec<TaskResult<O>>;
+
+    fn build(self) -> Self::Output {
+        self.source.pipe(self.parallel).build()
+    }
+}
+
+impl<T, O, P> Pipe<Vec<TaskResult<O>>> for ParallelBuilder<T, O, P>
+where
+    T: Clone + Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    fn pipe<Op: Operator<Vec<TaskResult<O>>>>(self, op: Op) -> Source<Op::Output> {
+        self.source.pipe(self.parallel).pipe(op)
     }
 }
 
@@ -195,5 +260,23 @@ mod tests {
 
         assert_eq!(results.len(), 3);
         assert_eq!(counter.load(Ordering::SeqCst), 3);
+    }
+
+    #[test]
+    fn parallel_pipe_trait() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let results = Source::from(10)
+            .parallel()
+            .spawn(|x| x * 2)
+            .spawn(|x| x + 5)
+            .build();
+
+        assert_eq!(results.len(), 2);
+        let values: Vec<i32> = results.into_iter().map(|r| r.unwrap()).collect();
+        assert_eq!(values, vec![20, 15]);
     }
 }

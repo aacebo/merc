@@ -8,6 +8,12 @@ pub use pipeline::{Layer, LayerContext, LayerResult, Pipeline, PipelineBuilder};
 pub use source::*;
 pub use transformer::*;
 
+// Re-export extension traits for convenience
+pub use operators::{
+    AwaitPipe, FanOutBuilder, FanOutPipe, FilterPipe, MapPipe, ParallelBuilder, ParallelPipe,
+    RouterBuilder, RouterPipe, SpawnPipe, TryMapPipe,
+};
+
 pub trait Operator<Input> {
     type Output;
 

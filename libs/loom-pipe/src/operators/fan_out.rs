@@ -1,4 +1,4 @@
-use crate::{Build, Operator, Source};
+use crate::{Build, Operator, Pipe, Source};
 
 /// Fan-out: send the same input to multiple operators, collect all outputs
 pub struct FanOut<Input, Output> {
@@ -59,16 +59,81 @@ where
     }
 }
 
+/// Extension trait for starting fan-out execution
+pub trait FanOutPipe<T>: Pipe<T> + Sized
+where
+    T: Clone + Send + 'static,
+{
+    fn fan_out<O: Send + 'static>(self) -> FanOutBuilder<T, O, Self> {
+        FanOutBuilder::new(self)
+    }
+}
+
+impl<T: Clone + Send + 'static, P: Pipe<T> + Sized> FanOutPipe<T> for P {}
+
+/// Builder for fan-out execution that implements Build and Pipe
+pub struct FanOutBuilder<T, O, P> {
+    source: P,
+    fan_out: FanOut<T, O>,
+}
+
+impl<T, O, P> FanOutBuilder<T, O, P>
+where
+    T: Clone + Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    fn new(source: P) -> Self {
+        Self {
+            source,
+            fan_out: FanOut::new(),
+        }
+    }
+
+    /// Add a branch operator
+    pub fn add<Op>(mut self, op: Op) -> Self
+    where
+        Op: Operator<T, Output = O> + Send + 'static,
+    {
+        self.fan_out = self.fan_out.add(op);
+        self
+    }
+}
+
+impl<T, O, P> Build for FanOutBuilder<T, O, P>
+where
+    T: Clone + Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    type Output = Vec<O>;
+
+    fn build(self) -> Self::Output {
+        self.source.pipe(self.fan_out).build()
+    }
+}
+
+impl<T, O, P> Pipe<Vec<O>> for FanOutBuilder<T, O, P>
+where
+    T: Clone + Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    fn pipe<Op: Operator<Vec<O>>>(self, op: Op) -> Source<Op::Output> {
+        self.source.pipe(self.fan_out).pipe(op)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::Pipe;
-    use crate::operators::{Filter, Guard};
+    use crate::operators::Filter;
 
     #[test]
     fn single_branch() {
         let result = Source::from(5)
-            .pipe(FanOut::new().add(Guard::allow(|x| *x > 0)))
+            .pipe(FanOut::new().add(Filter::allow(|x| *x > 0)))
             .build();
         assert_eq!(result, vec![Some(5)]);
     }
@@ -78,9 +143,9 @@ mod tests {
         let result = Source::from(10)
             .pipe(
                 FanOut::new()
-                    .add(Guard::allow(|x| *x > 5))
-                    .add(Guard::allow(|x| *x > 15))
-                    .add(Guard::block(|x| *x > 5)),
+                    .add(Filter::allow(|x| *x > 5))
+                    .add(Filter::allow(|x| *x > 15))
+                    .add(Filter::block(|x| *x > 5)),
             )
             .build();
         assert_eq!(result, vec![Some(10), None, None]);
@@ -102,14 +167,12 @@ mod tests {
     }
 
     #[test]
-    fn with_filter() {
-        let results = Source::from(vec![1, 2, 3, 4, 5])
-            .pipe(
-                FanOut::new()
-                    .add(Filter::new(|x| *x > 3))
-                    .add(Filter::new(|x| *x < 3)),
-            )
+    fn fan_out_pipe_trait() {
+        let results = Source::from(10)
+            .fan_out()
+            .add(Filter::allow(|x| *x > 5))
+            .add(Filter::allow(|x| *x > 15))
             .build();
-        assert_eq!(results, vec![vec![4, 5], vec![1, 2]]);
+        assert_eq!(results, vec![Some(10), None]);
     }
 }

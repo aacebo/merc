@@ -1,4 +1,4 @@
-use crate::{Build, Operator, Source};
+use crate::{Build, Operator, Pipe, Source};
 
 /// Route: send input to one of several operators based on predicates
 pub struct Router<Input, Output> {
@@ -82,19 +82,94 @@ where
     }
 }
 
+/// Extension trait for starting router execution
+pub trait RouterPipe<T>: Pipe<T> + Sized
+where
+    T: Send + 'static,
+{
+    fn router<O: Send + 'static>(self) -> RouterBuilder<T, O, Self> {
+        RouterBuilder::new(self)
+    }
+}
+
+impl<T: Send + 'static, P: Pipe<T> + Sized> RouterPipe<T> for P {}
+
+/// Builder for router execution that implements Build and Pipe
+pub struct RouterBuilder<T, O, P> {
+    source: P,
+    router: Router<T, O>,
+}
+
+impl<T, O, P> RouterBuilder<T, O, P>
+where
+    T: Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    fn new(source: P) -> Self {
+        Self {
+            source,
+            router: Router::new(),
+        }
+    }
+
+    /// Add a route with predicate and operator
+    pub fn route<Pred, Op>(mut self, predicate: Pred, op: Op) -> Self
+    where
+        Pred: Fn(&T) -> bool + Send + Sync + 'static,
+        Op: Operator<T, Output = O> + Send + 'static,
+    {
+        self.router = self.router.route(predicate, op);
+        self
+    }
+
+    /// Set the default operator when no routes match
+    pub fn default<Op>(mut self, op: Op) -> Self
+    where
+        Op: Operator<T, Output = O> + Send + 'static,
+    {
+        self.router = self.router.default(op);
+        self
+    }
+}
+
+impl<T, O, P> Build for RouterBuilder<T, O, P>
+where
+    T: Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    type Output = Option<O>;
+
+    fn build(self) -> Self::Output {
+        self.source.pipe(self.router).build()
+    }
+}
+
+impl<T, O, P> Pipe<Option<O>> for RouterBuilder<T, O, P>
+where
+    T: Send + 'static,
+    O: Send + 'static,
+    P: Pipe<T>,
+{
+    fn pipe<Op: Operator<Option<O>>>(self, op: Op) -> Source<Op::Output> {
+        self.source.pipe(self.router).pipe(op)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::Pipe;
-    use crate::operators::Guard;
+    use crate::operators::Filter;
 
     #[test]
     fn matches_first_route() {
         let result = Source::from(15)
             .pipe(
                 Router::new()
-                    .route(|x| *x > 10, Guard::allow(|_| true))
-                    .route(|x| *x > 5, Guard::block(|_| true)),
+                    .route(|x| *x > 10, Filter::allow(|_| true))
+                    .route(|x| *x > 5, Filter::block(|_| true)),
             )
             .build();
         assert_eq!(result, Some(Some(15)));
@@ -105,8 +180,8 @@ mod tests {
         let result = Source::from(7)
             .pipe(
                 Router::new()
-                    .route(|x| *x > 10, Guard::allow(|_| true))
-                    .route(|x| *x > 5, Guard::allow(|_| true)),
+                    .route(|x| *x > 10, Filter::allow(|_| true))
+                    .route(|x| *x > 5, Filter::allow(|_| true)),
             )
             .build();
         assert_eq!(result, Some(Some(7)));
@@ -117,8 +192,8 @@ mod tests {
         let result = Source::from(3)
             .pipe(
                 Router::new()
-                    .route(|x| *x > 10, Guard::allow(|_| true))
-                    .route(|x| *x > 5, Guard::allow(|_| true)),
+                    .route(|x| *x > 10, Filter::allow(|_| true))
+                    .route(|x| *x > 5, Filter::allow(|_| true)),
             )
             .build();
         assert_eq!(result, None);
@@ -129,8 +204,8 @@ mod tests {
         let result = Source::from(3)
             .pipe(
                 Router::new()
-                    .route(|x| *x > 10, Guard::allow(|_| true))
-                    .default(Guard::allow(|_| true)),
+                    .route(|x| *x > 10, Filter::allow(|_| true))
+                    .default(Filter::allow(|_| true)),
             )
             .build();
         assert_eq!(result, Some(Some(3)));
@@ -141,8 +216,8 @@ mod tests {
         let result = Source::from(15)
             .pipe(
                 Router::new()
-                    .route(|x| *x > 10, Guard::allow(|_| true))
-                    .default(Guard::block(|_| true)),
+                    .route(|x| *x > 10, Filter::allow(|_| true))
+                    .default(Filter::block(|_| true)),
             )
             .build();
         assert_eq!(result, Some(Some(15)));
@@ -153,8 +228,8 @@ mod tests {
         let result = Source::from("hello".to_string())
             .pipe(
                 Router::new()
-                    .route(|s: &String| s.starts_with("h"), Guard::allow(|_| true))
-                    .route(|s: &String| s.starts_with("w"), Guard::block(|_| true)),
+                    .route(|s: &String| s.starts_with("h"), Filter::allow(|_| true))
+                    .route(|s: &String| s.starts_with("w"), Filter::block(|_| true)),
             )
             .build();
         assert_eq!(result, Some(Some("hello".to_string())));
@@ -165,5 +240,15 @@ mod tests {
         let router: Router<i32, Option<i32>> = Router::new();
         let result = Source::from(42).pipe(router).build();
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn router_pipe_trait() {
+        let result = Source::from(15)
+            .router()
+            .route(|x| *x > 10, Filter::allow(|_| true))
+            .route(|x| *x > 5, Filter::block(|_| true))
+            .build();
+        assert_eq!(result, Some(Some(15)));
     }
 }

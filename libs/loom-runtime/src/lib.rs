@@ -7,7 +7,7 @@ use loom_codec::{CodecRegistry, CodecRegistryBuilder};
 use loom_io::{DataSourceRegistry, DataSourceRegistryBuilder};
 pub use loom_pipe::{
     Layer, LayerContext, LayerResult, Pipeline, PipelineBuilder,
-    operators::{Await, FanOut, Filter, Guard, Parallel, Router, Spawn, TryMap},
+    operators::{Await, FanOut, Filter, Parallel, Router, Spawn, TryMap},
 };
 
 pub struct Runtime {

@@ -1,6 +1,6 @@
 use loom_sync::tasks::Task;
 
-use crate::{Build, Operator, Source};
+use crate::{Build, Operator, Pipe, Source};
 
 /// Spawn: execute work asynchronously, return a Task handle
 pub struct Spawn<Input, Output> {
@@ -35,6 +35,21 @@ where
         })
     }
 }
+
+pub trait SpawnPipe<T>: Pipe<T> + Sized
+where
+    T: Send + 'static,
+{
+    fn spawn<O, F>(self, f: F) -> Source<Task<O>>
+    where
+        O: Send + 'static,
+        F: FnOnce(T) -> O + Send + 'static,
+    {
+        self.pipe(Spawn::new(f))
+    }
+}
+
+impl<T: Send + 'static, P: Pipe<T> + Sized> SpawnPipe<T> for P {}
 
 #[cfg(test)]
 mod tests {
@@ -82,5 +97,18 @@ mod tests {
         let result = task.wait().unwrap();
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 45); // 0+1+2+...+9 = 45
+    }
+
+    #[test]
+    fn spawn_pipe_trait() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let mut task = Source::from(5).spawn(|x| x * 2).build();
+        let result = task.wait().unwrap();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 10);
     }
 }

@@ -1,6 +1,6 @@
-use crate::{Build, Operator, Source};
+use crate::{Build, Operator, Pipe, Source};
 
-/// Filter items in a Vec based on a predicate
+/// Filter: gate a single value based on a predicate (T -> Option<T>)
 pub struct Filter<T> {
     predicate: Box<dyn Fn(&T) -> bool + Send + Sync>,
 }
@@ -17,72 +17,114 @@ where
             predicate: Box::new(predicate),
         }
     }
+
+    /// Create a filter that allows values matching the predicate (alias for new)
+    pub fn allow<P>(predicate: P) -> Self
+    where
+        P: Fn(&T) -> bool + Send + Sync + 'static,
+    {
+        Self::new(predicate)
+    }
+
+    /// Create a filter that blocks values matching the predicate
+    pub fn block<P>(predicate: P) -> Self
+    where
+        P: Fn(&T) -> bool + Send + Sync + 'static,
+    {
+        Self::new(move |x| !predicate(x))
+    }
 }
 
-impl<T> Operator<Vec<T>> for Filter<T>
+impl<T> Operator<T> for Filter<T>
 where
     T: Send + 'static,
 {
-    type Output = Vec<T>;
+    type Output = Option<T>;
 
-    fn apply(self, src: Source<Vec<T>>) -> Source<Self::Output> {
+    fn apply(self, src: Source<T>) -> Source<Self::Output> {
         Source::new(move || {
-            let items = src.build();
-            items
-                .into_iter()
-                .filter(|item| (self.predicate)(item))
-                .collect()
+            let input = src.build();
+            if (self.predicate)(&input) {
+                Some(input)
+            } else {
+                None
+            }
         })
     }
 }
 
+/// Extension trait for filtering single values (T -> Option<T>)
+pub trait FilterPipe<T>: Pipe<T> + Sized
+where
+    T: Send + 'static,
+{
+    fn filter<P>(self, predicate: P) -> Source<Option<T>>
+    where
+        P: Fn(&T) -> bool + Send + Sync + 'static,
+    {
+        self.pipe(Filter::new(predicate))
+    }
+
+    fn filter_allow<P>(self, predicate: P) -> Source<Option<T>>
+    where
+        P: Fn(&T) -> bool + Send + Sync + 'static,
+    {
+        self.pipe(Filter::allow(predicate))
+    }
+
+    fn filter_block<P>(self, predicate: P) -> Source<Option<T>>
+    where
+        P: Fn(&T) -> bool + Send + Sync + 'static,
+    {
+        self.pipe(Filter::block(predicate))
+    }
+}
+
+impl<T: Send + 'static, P: Pipe<T> + Sized> FilterPipe<T> for P {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Pipe;
 
     #[test]
-    fn keeps_matching_items() {
-        let result = Source::from(vec![1, 2, 3, 4, 5])
-            .pipe(Filter::new(|x| *x > 2))
-            .build();
-        assert_eq!(result, vec![3, 4, 5]);
+    fn allows_matching_single_value() {
+        let result = Source::from(42).pipe(Filter::allow(|x| *x > 0)).build();
+        assert_eq!(result, Some(42));
     }
 
     #[test]
-    fn removes_all_non_matching() {
-        let result = Source::from(vec![1, 2, 3])
-            .pipe(Filter::new(|x| *x > 10))
-            .build();
-        assert!(result.is_empty());
+    fn blocks_non_matching_single_value() {
+        let result = Source::from(-5).pipe(Filter::allow(|x| *x > 0)).build();
+        assert_eq!(result, None);
     }
 
     #[test]
-    fn keeps_all_matching() {
-        let result = Source::from(vec![10, 20, 30])
-            .pipe(Filter::new(|x| *x > 0))
-            .build();
-        assert_eq!(result, vec![10, 20, 30]);
+    fn block_blocks_matching_value() {
+        let result = Source::from(42).pipe(Filter::block(|x| *x > 0)).build();
+        assert_eq!(result, None);
     }
 
     #[test]
-    fn empty_vec() {
-        let result = Source::from(Vec::<i32>::new())
-            .pipe(Filter::new(|x| *x > 0))
-            .build();
-        assert!(result.is_empty());
+    fn block_allows_non_matching_value() {
+        let result = Source::from(-5).pipe(Filter::block(|x| *x > 0)).build();
+        assert_eq!(result, Some(-5));
     }
 
     #[test]
-    fn strings_by_length() {
-        let result = Source::from(vec![
-            "a".to_string(),
-            "abc".to_string(),
-            "ab".to_string(),
-            "abcd".to_string(),
-        ])
-        .pipe(Filter::new(|s: &String| s.len() >= 3))
-        .build();
-        assert_eq!(result, vec!["abc".to_string(), "abcd".to_string()]);
+    fn filter_pipe_trait_single() {
+        let result = Source::from(42).filter(|x| *x > 0).build();
+        assert_eq!(result, Some(42));
+    }
+
+    #[test]
+    fn filter_allow_pipe_trait() {
+        let result = Source::from(42).filter_allow(|x| *x > 0).build();
+        assert_eq!(result, Some(42));
+    }
+
+    #[test]
+    fn filter_block_pipe_trait() {
+        let result = Source::from(42).filter_block(|x| *x > 0).build();
+        assert_eq!(result, None);
     }
 }

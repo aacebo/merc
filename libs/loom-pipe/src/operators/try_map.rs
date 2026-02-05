@@ -1,6 +1,6 @@
 use loom_error::Result;
 
-use crate::{Build, Operator, Source};
+use crate::{Build, Operator, Pipe, Source};
 
 /// TryMap: transform input with a fallible function
 pub struct TryMap<Input, Output> {
@@ -31,6 +31,21 @@ where
         Source::new(move || (self.f)(src.build()))
     }
 }
+
+pub trait TryMapPipe<T>: Pipe<T> + Sized
+where
+    T: Send + 'static,
+{
+    fn try_map<O, F>(self, f: F) -> Source<Result<O>>
+    where
+        O: Send + 'static,
+        F: FnOnce(T) -> Result<O> + Send + 'static,
+    {
+        self.pipe(TryMap::new(f))
+    }
+}
+
+impl<T: Send + 'static, P: Pipe<T> + Sized> TryMapPipe<T> for P {}
 
 #[cfg(test)]
 mod tests {
@@ -89,5 +104,14 @@ mod tests {
             }))
             .build();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn try_map_pipe_trait() {
+        let result = Source::from("42".to_string())
+            .try_map(|s: String| s.parse::<i32>().map_err(|e| e.into()))
+            .build();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 42);
     }
 }

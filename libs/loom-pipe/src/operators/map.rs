@@ -20,18 +20,21 @@ impl<Input: 'static, Output: 'static> Operator<Input> for Map<Input, Output> {
     }
 }
 
-impl<T: 'static> Source<T> {
-    pub fn map<Output: 'static, Handler: FnOnce(T) -> Output + 'static>(
-        self,
-        handler: Handler,
-    ) -> Source<Output> {
-        self.pipe(Map::new(handler))
+pub trait MapPipe<T>: Pipe<T> + Sized {
+    fn map<O: 'static, F: FnOnce(T) -> O + 'static>(self, f: F) -> Source<O>
+    where
+        T: 'static,
+    {
+        self.pipe(Map::new(f))
     }
 }
+
+impl<T, P: Pipe<T> + Sized> MapPipe<T> for P {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Pipe;
 
     #[test]
     fn transforms_value() {
@@ -64,5 +67,11 @@ mod tests {
             .map(|x| x.to_string())
             .build();
         assert_eq!(result, "6");
+    }
+
+    #[test]
+    fn map_pipe_trait() {
+        let result = Source::from(10).map(|x| x * 3).build();
+        assert_eq!(result, 30);
     }
 }

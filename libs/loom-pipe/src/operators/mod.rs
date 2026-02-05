@@ -1,6 +1,5 @@
 mod fan_out;
 mod filter;
-mod guard;
 mod map;
 mod parallel;
 mod router;
@@ -10,7 +9,6 @@ mod wait;
 
 pub use fan_out::*;
 pub use filter::*;
-pub use guard::*;
 pub use map::*;
 pub use parallel::*;
 pub use router::*;

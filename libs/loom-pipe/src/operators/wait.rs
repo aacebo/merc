@@ -1,6 +1,6 @@
 use loom_sync::tasks::{Task, TaskError, TaskResult};
 
-use crate::{Build, Operator, Source};
+use crate::{Build, Operator, Pipe, Source};
 
 /// Await: wait for a Task to complete and extract its result
 pub struct Await;
@@ -33,6 +33,17 @@ where
         })
     }
 }
+
+pub trait AwaitPipe<T>: Pipe<Task<T>> + Sized
+where
+    T: Send + 'static,
+{
+    fn wait(self) -> Source<TaskResult<T>> {
+        self.pipe(Await::new())
+    }
+}
+
+impl<T: Send + 'static, P: Pipe<Task<T>> + Sized> AwaitPipe<T> for P {}
 
 #[cfg(test)]
 mod tests {
@@ -81,6 +92,21 @@ mod tests {
             .pipe(Spawn::new(|x| x + 5))
             .pipe(Await::default())
             .build();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 15);
+    }
+
+    #[test]
+    fn await_pipe_trait() {
+        use super::AwaitPipe;
+        use crate::operators::SpawnPipe;
+
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = rt.enter();
+        let result = Source::from(5).spawn(|x| x * 3).wait().build();
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 15);
     }
