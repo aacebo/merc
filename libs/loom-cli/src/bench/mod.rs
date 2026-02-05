@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Subcommand;
 
-mod coverage;
+mod cov;
 mod run;
 mod score;
 mod train;
@@ -51,10 +51,10 @@ pub enum BenchAction {
 
 pub fn run(action: BenchAction) {
     match action {
-        BenchAction::Run { path, verbose } => run::run_benchmark(&path, verbose),
-        BenchAction::Validate { path } => validate::validate_dataset(&path),
-        BenchAction::Coverage { path } => coverage::exec(&path),
-        BenchAction::Score { path, output } => score::extract_scores(&path, &output),
-        BenchAction::Train { path, output, code } => train::train_platt(&path, &output, code),
+        BenchAction::Run { path, verbose } => run::exec(&path, verbose),
+        BenchAction::Validate { path } => validate::exec(&path),
+        BenchAction::Coverage { path } => cov::exec(&path),
+        BenchAction::Score { path, output } => score::exec(&path, &output),
+        BenchAction::Train { path, output, code } => train::exec(&path, &output, code),
     }
 }

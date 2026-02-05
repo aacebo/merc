@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use loom::runtime::bench::BenchDataset;
 
-pub fn validate_dataset(path: &PathBuf) {
+pub fn exec(path: &PathBuf) {
     println!("Validating dataset at {:?}...", path);
 
     let dataset = match BenchDataset::load(path) {

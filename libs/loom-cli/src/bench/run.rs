@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use loom::runtime::bench::BenchDataset;
 use loom::runtime::score::ScoreConfig;
 
-pub fn run_benchmark(path: &PathBuf, verbose: bool) {
+pub fn exec(path: &PathBuf, verbose: bool) {
     println!("Loading dataset from {:?}...", path);
 
     let dataset = match BenchDataset::load(path) {

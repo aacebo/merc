@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use loom::runtime::bench::RawScoreExport;
 
-pub fn train_platt(path: &PathBuf, output: &PathBuf, generate_rust: bool) {
+pub fn exec(path: &PathBuf, output: &PathBuf, generate_rust: bool) {
     println!("Loading raw scores from {:?}...", path);
 
     let content = match fs::read_to_string(path) {
