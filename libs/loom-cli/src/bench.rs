@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use clap::Subcommand;
 use loom_runtime::bench::{BenchDataset, Category, RawScoreExport};
-use loom_runtime::score::ScoreOptions;
+use loom_runtime::score::ScoreConfig;
 
 #[derive(Subcommand)]
 pub enum BenchAction {
@@ -71,12 +71,12 @@ fn run_benchmark(path: &PathBuf, verbose: bool) {
     println!("Loaded {} samples", dataset.samples.len());
     println!("Building scorer (this may download model files on first run)...");
 
-    let options = ScoreOptions::new();
+    let config = ScoreConfig::default();
 
     println!("\nRunning benchmark...\n");
 
     let total = dataset.samples.len();
-    let result = match loom_runtime::bench::run_with_options_and_progress(&dataset, options, |p| {
+    let result = match loom_runtime::bench::run_with_config_and_progress(&dataset, config, |p| {
         let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
         let bar_width = 30;
         let filled = pct * bar_width / 100;
@@ -292,12 +292,12 @@ fn extract_scores(path: &PathBuf, output: &PathBuf) {
     println!("Loaded {} samples", dataset.samples.len());
     println!("Building scorer (this may download model files on first run)...");
 
-    let options = ScoreOptions::new();
+    let config = ScoreConfig::default();
 
     println!("\nExtracting raw scores...\n");
 
     let total = dataset.samples.len();
-    let export = match loom_runtime::bench::export_raw_scores_with_options(&dataset, options, |p| {
+    let export = match loom_runtime::bench::export_raw_scores_with_config(&dataset, config, |p| {
         let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
         let bar_width = 30;
         let filled = pct * bar_width / 100;

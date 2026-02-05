@@ -1,9 +1,7 @@
 mod config;
-mod options;
 mod result;
 
 pub use config::*;
-pub use options::*;
 pub use result::*;
 
 use std::collections::HashMap;
@@ -276,7 +274,9 @@ mod tests {
 
     #[cfg(feature = "int")]
     fn int_test_config() -> ScoreConfig {
+        use crate::model::ModelConfig;
         ScoreConfig {
+            model: ModelConfig::default(),
             threshold: 0.40,
             top_k: 2,
             modifiers: ScoreModifierConfig::default(),
@@ -348,7 +348,7 @@ mod tests {
     fn should_cancel() -> Result<()> {
         use loom_pipe::{Build, Pipe};
 
-        let layer = ScoreOptions::new().with_config(int_test_config()).build()?;
+        let layer = int_test_config().build()?;
         let context = Context::new("hi how are you?", ());
         let res = Source::from(context).pipe(layer).build();
 
@@ -366,7 +366,7 @@ mod tests {
     fn should_be_stressed() -> Result<()> {
         use loom_pipe::{Build, Pipe};
 
-        let layer = ScoreOptions::new().with_config(int_test_config()).build()?;
+        let layer = int_test_config().build()?;
         let context = Context::new("oh my god, I'm going to be late for work!", ());
         let res = Source::from(context).pipe(layer).build()?;
 

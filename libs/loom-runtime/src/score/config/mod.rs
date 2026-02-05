@@ -6,12 +6,21 @@ pub use category::*;
 pub use label::*;
 pub use modifier::*;
 
+use loom_error::Result;
+use rust_bert::pipelines::zero_shot_classification;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
+
+use crate::model::ModelConfig;
+use crate::score::ScoreLayer;
 
 /// Root configuration for the scoring engine
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ScoreConfig {
+    /// Model configuration for zero-shot classification
+    #[serde(default)]
+    pub model: ModelConfig,
+
     /// Baseline threshold for overall score acceptance
     #[serde(default = "ScoreConfig::threshold")]
     #[validate(minimum = 0.0)]
@@ -83,11 +92,22 @@ impl ScoreConfig {
             .map(|l| l.hypothesis.clone())
             .unwrap_or_else(|| format!("This example is {}.", label_name))
     }
+
+    /// Build a ScoreLayer from this configuration
+    pub fn build(self) -> Result<ScoreLayer> {
+        self.validate()
+            .map_err(|e| loom_error::Error::builder().message(&e.to_string()).build())?;
+
+        let model =
+            zero_shot_classification::ZeroShotClassificationModel::new(self.model.clone().into())?;
+        Ok(ScoreLayer::new(model, self))
+    }
 }
 
 impl Default for ScoreConfig {
     fn default() -> Self {
         Self {
+            model: ModelConfig::default(),
             threshold: Self::threshold(),
             top_k: Self::top_k(),
             modifiers: ScoreModifierConfig::default(),
@@ -99,9 +119,11 @@ impl Default for ScoreConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::ModelConfig;
 
     fn test_config() -> ScoreConfig {
         ScoreConfig {
+            model: ModelConfig::default(),
             threshold: 0.75,
             top_k: 2,
             modifiers: ScoreModifierConfig::default(),
@@ -236,6 +258,7 @@ mod tests {
         assert_eq!(config.top_k, 2);
         assert_eq!(config.modifiers.short_text_delta, 0.05);
         assert_eq!(config.modifiers.long_text_delta, 0.05);
+        assert!(config.model.is_remote());
         assert!(config.validate().is_ok());
     }
 }

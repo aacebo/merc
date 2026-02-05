@@ -1,12 +1,12 @@
 pub mod bench;
 mod context;
 mod layer;
-mod options;
+pub mod model;
 pub mod score;
 
 pub use context::*;
 pub use layer::*;
-pub use options::*;
+pub use model::*;
 
 use loom_codec::{CodecRegistry, CodecRegistryBuilder};
 use loom_io::{DataSourceRegistry, DataSourceRegistryBuilder};

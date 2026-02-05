@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::Context;
-use crate::score::{ScoreLayer, ScoreOptions, ScoreResult};
+use crate::score::{ScoreConfig, ScoreLayer, ScoreResult};
 
 use super::dataset::{BenchDataset, BenchSample, Category, Decision};
 
@@ -187,22 +187,19 @@ where
     result
 }
 
-pub fn run_with_options(
-    dataset: &BenchDataset,
-    options: ScoreOptions,
-) -> Result<BenchResult, String> {
-    run_with_options_and_progress(dataset, options, |_| {})
+pub fn run_with_config(dataset: &BenchDataset, config: ScoreConfig) -> Result<BenchResult, String> {
+    run_with_config_and_progress(dataset, config, |_| {})
 }
 
-pub fn run_with_options_and_progress<F>(
+pub fn run_with_config_and_progress<F>(
     dataset: &BenchDataset,
-    options: ScoreOptions,
+    config: ScoreConfig,
     on_progress: F,
 ) -> Result<BenchResult, String>
 where
     F: Fn(Progress),
 {
-    let layer = options
+    let layer = config
         .build()
         .map_err(|e| format!("Failed to build scorer: {}", e))?;
     Ok(run_with_progress(dataset, &layer, on_progress))
@@ -337,13 +334,13 @@ pub fn export_raw_scores(
     RawScoreExport { samples }
 }
 
-/// Export raw scores with options (builds the scorer internally).
-pub fn export_raw_scores_with_options(
+/// Export raw scores with config (builds the scorer internally).
+pub fn export_raw_scores_with_config(
     dataset: &BenchDataset,
-    options: ScoreOptions,
+    config: ScoreConfig,
     on_progress: impl Fn(Progress),
 ) -> Result<RawScoreExport, String> {
-    let layer = options
+    let layer = config
         .build()
         .map_err(|e| format!("Failed to build scorer: {}", e))?;
     Ok(export_raw_scores(dataset, &layer, on_progress))

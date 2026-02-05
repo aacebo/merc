@@ -1,6 +1,12 @@
 # Score Configuration
 # Root configuration for the scoring engine
 
+# Model configuration for zero-shot classification
+# DeBERTa-v2 provides best accuracy for NLI-based zero-shot tasks
+model:
+  type: remote
+  model: DebertaV2
+
 threshold: 0.75
 top_k: 2
 
