@@ -120,6 +120,34 @@ let config = CortexSentenceEmbeddingsConfigBuilder::default()
     .unwrap();
 ```
 
+## Benchmarking
+
+The `bench` module provides types and utilities for benchmarking NLP models:
+
+```rust
+use loom_cortex::bench::{BenchDataset, BenchResult, Decision, Category};
+
+// Load a benchmark dataset
+let dataset = BenchDataset::load("benchmark.json")?;
+
+// Validate the dataset
+let errors = dataset.validate();
+
+// Get coverage report
+let coverage = dataset.coverage();
+```
+
+### Platt Calibration
+
+Train Platt scaling parameters for probability calibration:
+
+```rust
+use loom_cortex::bench::{train_platt_params, RawScoreExport};
+
+let result = train_platt_params(&raw_score_export);
+let code = generate_rust_code(&result);
+```
+
 ## Module Structure
 
 ```
@@ -130,6 +158,14 @@ loom-cortex/
 │   ├── model_type.rs       # CortexModelType enum (25+ architectures)
 │   ├── device.rs           # CortexDevice enum
 │   ├── resource.rs         # Resource loading configuration
+│   ├── bench/
+│   │   ├── mod.rs          # Benchmark module exports
+│   │   ├── dataset.rs      # BenchDataset, BenchSample
+│   │   ├── category.rs     # Category, Difficulty enums
+│   │   ├── decision.rs     # Decision enum
+│   │   ├── validation.rs   # ValidationError, CoverageReport
+│   │   ├── result.rs       # BenchResult, SampleResult, Progress
+│   │   └── platt.rs        # Platt calibration training
 │   └── config/
 │       ├── mod.rs
 │       ├── model_config.rs # CortexModelConfig dispatcher

@@ -43,5 +43,4 @@ saphyr = { version = "0.0.3" }
 toml = { version = "0.8" }
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "uuid", "chrono"] }
 tokio = { version = "1" }
-tch = { version = "0.17" }
 futures = { version = "0.3" }

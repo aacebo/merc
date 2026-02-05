@@ -1,16 +1,25 @@
+use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-use loom::runtime::bench::BenchDataset;
+use loom::cortex::bench::{BenchDataset, run_with_progress};
 use loom::runtime::score::ScoreConfig;
 
 pub fn exec(path: &PathBuf, verbose: bool) {
     println!("Loading dataset from {:?}...", path);
 
-    let dataset = match BenchDataset::load(path) {
+    let contents = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error reading dataset file: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let dataset: BenchDataset = match serde_json::from_str(&contents) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("Error loading dataset: {}", e);
+            eprintln!("Error parsing dataset: {}", e);
             std::process::exit(1);
         }
     };
@@ -19,11 +28,18 @@ pub fn exec(path: &PathBuf, verbose: bool) {
     println!("Building scorer (this may download model files on first run)...");
 
     let config = ScoreConfig::default();
+    let layer = match config.build() {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Error building scorer: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     println!("\nRunning benchmark...\n");
 
     let total = dataset.samples.len();
-    let result = match loom::runtime::bench::run_with_config_and_progress(&dataset, config, |p| {
+    let result = run_with_progress(&dataset, &layer, |p| {
         let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
         let bar_width = 30;
         let filled = pct * bar_width / 100;
@@ -40,13 +56,7 @@ pub fn exec(path: &PathBuf, verbose: bool) {
             p.sample_id
         );
         let _ = io::stdout().flush();
-    }) {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("\nError running benchmark: {}", e);
-            std::process::exit(1);
-        }
-    };
+    });
 
     // Clear the progress line
     print!("\r\x1B[K");

@@ -16,4 +16,4 @@ path = "src/main.rs"
 clap = { version = "4", features = ["derive"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-loom = { workspace = true, features = ["runtime", "yaml"] }
+loom = { workspace = true, features = ["runtime", "cortex", "yaml"] }

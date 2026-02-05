@@ -28,7 +28,6 @@ serde_json = { workspace = true, optional = true }
 serde_valid = { workspace = true }
 saphyr = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
-tch = { workspace = true }
 
 loom-cortex = { workspace = true }
 loom-error = { workspace = true }

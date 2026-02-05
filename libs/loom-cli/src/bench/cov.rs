@@ -1,14 +1,23 @@
+use std::fs;
 use std::path::PathBuf;
 
-use loom::runtime::bench::{BenchDataset, Category};
+use loom::cortex::bench::{BenchDataset, Category};
 
 pub fn exec(path: &PathBuf) {
     println!("Analyzing coverage for {:?}...\n", path);
 
-    let dataset = match BenchDataset::load(path) {
+    let contents = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error reading dataset file: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let dataset: BenchDataset = match serde_json::from_str(&contents) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("Error loading dataset: {}", e);
+            eprintln!("Error parsing dataset: {}", e);
             std::process::exit(1);
         }
     };

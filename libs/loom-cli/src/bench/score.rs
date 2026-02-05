@@ -2,16 +2,24 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-use loom::runtime::bench::BenchDataset;
+use loom::cortex::bench::{BenchDataset, export_with_progress};
 use loom::runtime::score::ScoreConfig;
 
 pub fn exec(path: &PathBuf, output: &PathBuf) {
     println!("Loading dataset from {:?}...", path);
 
-    let dataset = match BenchDataset::load(path) {
+    let contents = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error reading dataset file: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let dataset: BenchDataset = match serde_json::from_str(&contents) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("Error loading dataset: {}", e);
+            eprintln!("Error parsing dataset: {}", e);
             std::process::exit(1);
         }
     };
@@ -20,11 +28,18 @@ pub fn exec(path: &PathBuf, output: &PathBuf) {
     println!("Building scorer (this may download model files on first run)...");
 
     let config = ScoreConfig::default();
+    let layer = match config.build() {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Error building scorer: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     println!("\nExtracting raw scores...\n");
 
     let total = dataset.samples.len();
-    let export = match loom::runtime::bench::export_raw_scores_with_config(&dataset, config, |p| {
+    let export = export_with_progress(&dataset, &layer, |p| {
         let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
         let bar_width = 30;
         let filled = pct * bar_width / 100;
@@ -39,13 +54,7 @@ pub fn exec(path: &PathBuf, output: &PathBuf) {
             p.sample_id
         );
         let _ = io::stdout().flush();
-    }) {
-        Ok(e) => e,
-        Err(e) => {
-            eprintln!("\nError extracting scores: {}", e);
-            std::process::exit(1);
-        }
-    };
+    });
 
     // Clear the progress line
     print!("\r\x1B[K");

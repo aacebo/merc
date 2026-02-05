@@ -2395,6 +2395,7 @@ dependencies = [
 name = "loom-cortex"
 version = "0.0.1"
 dependencies = [
+ "chrono",
  "console",
  "loom-config",
  "rust-bert",
@@ -2441,7 +2442,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_valid",
- "tch",
  "tokio",
  "toml",
 ]

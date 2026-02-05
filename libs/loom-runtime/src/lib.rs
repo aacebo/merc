@@ -1,4 +1,3 @@
-pub mod bench;
 mod context;
 mod layer;
 pub mod score;

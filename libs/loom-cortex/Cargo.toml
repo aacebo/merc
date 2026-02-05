@@ -12,8 +12,9 @@ repository.workspace = true
 doctest = false
 
 [dependencies]
+chrono = { workspace = true }
 loom-config = { workspace = true }
 serde = { workspace = true }
-tch = { workspace = true }
+tch = { version = "0.17" }
 rust-bert = { version = "0.23" }
 console = { version = "0.16", features = ["std"] }

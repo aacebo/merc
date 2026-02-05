@@ -6,6 +6,7 @@ pub use result::*;
 
 use std::collections::HashMap;
 
+use loom_cortex::bench::{Decision, Scorer, ScorerOutput};
 use loom_cortex::CortexModel;
 use loom_error::{Error, ErrorCode};
 use loom_pipe::Build;
@@ -170,6 +171,50 @@ impl<Input: 'static> loom_pipe::Operator<Context<Input>> for ScoreLayer {
 
     fn apply(self, src: loom_pipe::Source<Context<Input>>) -> loom_pipe::Source<Self::Output> {
         loom_pipe::Source::new(move || self.invoke(src.build()))
+    }
+}
+
+/// Wrapper around ScoreResult that implements ScorerOutput.
+pub struct ScoreLayerOutput(ScoreResult);
+
+impl ScoreLayerOutput {
+    pub fn new(result: ScoreResult) -> Self {
+        Self(result)
+    }
+
+    /// Get the underlying ScoreResult.
+    pub fn inner(&self) -> &ScoreResult {
+        &self.0
+    }
+}
+
+impl ScorerOutput for ScoreLayerOutput {
+    fn decision(&self) -> Decision {
+        // If we got a successful result, it's Accept
+        // (Reject happens when invoke returns an error)
+        Decision::Accept
+    }
+
+    fn score(&self) -> f32 {
+        self.0.score
+    }
+
+    fn labels(&self) -> Vec<(String, f32)> {
+        self.0
+            .labels()
+            .into_iter()
+            .map(|l: &ScoreLabel| (l.name.clone(), l.raw_score))
+            .collect()
+    }
+}
+
+impl Scorer for ScoreLayer {
+    type Output = ScoreLayerOutput;
+    type Error = Error;
+
+    fn score(&self, text: &str) -> Result<Self::Output, Self::Error> {
+        let ctx = Context::new(text, ());
+        self.invoke(ctx).map(|r| ScoreLayerOutput::new(r.output))
     }
 }
 

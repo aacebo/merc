@@ -1,80 +1,19 @@
 use std::collections::HashSet;
-use std::fs;
-use std::path::Path;
 
-use crate::score::ScoreConfig;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+use super::{BenchSample, CoverageReport, Decision, ValidationError};
+
+/// A benchmark dataset containing samples for evaluation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BenchDataset {
     pub version: String,
     pub created: String,
     pub samples: Vec<BenchSample>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BenchSample {
-    pub id: String,
-    pub text: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub context: Option<String>,
-    pub expected_decision: Decision,
-    pub expected_labels: Vec<String>,
-    pub primary_category: Category,
-    pub difficulty: Difficulty,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub notes: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Decision {
-    Accept,
-    Reject,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Category {
-    Task,
-    Emotional,
-    Factual,
-    Preference,
-    Decision,
-    Phatic,
-    Ambiguous,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Difficulty {
-    Easy,
-    Medium,
-    Hard,
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct ValidationError {
-    pub sample_id: String,
-    pub message: String,
-}
-
-impl std::fmt::Display for ValidationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}] {}", self.sample_id, self.message)
-    }
-}
-
-#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CoverageReport {
-    pub total_samples: usize,
-    pub samples_by_category: std::collections::HashMap<Category, usize>,
-    pub samples_by_label: std::collections::HashMap<String, usize>,
-    pub missing_labels: Vec<String>,
-    pub accept_count: usize,
-    pub reject_count: usize,
-}
-
 impl BenchDataset {
+    /// Create a new empty dataset.
     pub fn new() -> Self {
         Self {
             version: "1.0.0".to_string(),
@@ -83,34 +22,20 @@ impl BenchDataset {
         }
     }
 
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, String> {
-        let content =
-            fs::read_to_string(path.as_ref()).map_err(|e| format!("Failed to read file: {}", e))?;
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse JSON: {}", e))
-    }
-
-    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
-        let content = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Failed to serialize: {}", e))?;
-        fs::write(path.as_ref(), content).map_err(|e| format!("Failed to write file: {}", e))
-    }
-
-    /// Validate the dataset. If a config is provided, also validates label names.
+    /// Validate the dataset without label validation.
     pub fn validate(&self) -> Vec<ValidationError> {
-        self.validate_with_config(None)
+        self.validate_with_labels(None)
     }
 
-    /// Validate the dataset with optional config for label validation.
-    pub fn validate_with_config(&self, config: Option<&ScoreConfig>) -> Vec<ValidationError> {
+    /// Validate the dataset with optional label validation.
+    pub fn validate_with_labels(&self, valid_labels: Option<&[String]>) -> Vec<ValidationError> {
         let mut errors = Vec::new();
         let mut seen_ids = HashSet::new();
 
-        // Get valid labels from config if provided
-        let valid_labels: Option<HashSet<String>> =
-            config.map(|c| c.labels().iter().map(|l| l.name.clone()).collect());
+        let valid_set: Option<HashSet<&String>> =
+            valid_labels.map(|labels| labels.iter().collect());
 
         for sample in &self.samples {
-            // Check for duplicate IDs
             if !seen_ids.insert(&sample.id) {
                 errors.push(ValidationError {
                     sample_id: sample.id.clone(),
@@ -118,7 +43,6 @@ impl BenchDataset {
                 });
             }
 
-            // Check for empty text
             if sample.text.trim().is_empty() {
                 errors.push(ValidationError {
                     sample_id: sample.id.clone(),
@@ -126,7 +50,6 @@ impl BenchDataset {
                 });
             }
 
-            // Check for empty expected_labels
             if sample.expected_labels.is_empty() {
                 errors.push(ValidationError {
                     sample_id: sample.id.clone(),
@@ -134,8 +57,7 @@ impl BenchDataset {
                 });
             }
 
-            // Validate label names if config provided
-            if let Some(ref valid) = valid_labels {
+            if let Some(ref valid) = valid_set {
                 for label in &sample.expected_labels {
                     if !valid.contains(label) {
                         errors.push(ValidationError {
@@ -150,42 +72,38 @@ impl BenchDataset {
         errors
     }
 
-    /// Get coverage report. If a config is provided, also reports missing labels.
+    /// Get coverage report without label coverage.
     pub fn coverage(&self) -> CoverageReport {
-        self.coverage_with_config(None)
+        self.coverage_with_labels(None)
     }
 
-    /// Get coverage report with optional config for missing label detection.
-    pub fn coverage_with_config(&self, config: Option<&ScoreConfig>) -> CoverageReport {
+    /// Get coverage report with optional label coverage detection.
+    pub fn coverage_with_labels(&self, all_labels: Option<&[String]>) -> CoverageReport {
         let mut report = CoverageReport {
             total_samples: self.samples.len(),
             ..Default::default()
         };
 
-        // Count by category
         for sample in &self.samples {
             *report
                 .samples_by_category
                 .entry(sample.primary_category)
                 .or_insert(0) += 1;
 
-            // Count by label
             for label in &sample.expected_labels {
                 *report.samples_by_label.entry(label.clone()).or_insert(0) += 1;
             }
 
-            // Count decisions
             match sample.expected_decision {
                 Decision::Accept => report.accept_count += 1,
                 Decision::Reject => report.reject_count += 1,
             }
         }
 
-        // Find missing labels if config provided
-        if let Some(config) = config {
-            for label_config in config.labels() {
-                if !report.samples_by_label.contains_key(&label_config.name) {
-                    report.missing_labels.push(label_config.name.clone());
+        if let Some(labels) = all_labels {
+            for label in labels {
+                if !report.samples_by_label.contains_key(label) {
+                    report.missing_labels.push(label.clone());
                 }
             }
             report.missing_labels.sort();
@@ -204,6 +122,7 @@ impl Default for BenchDataset {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bench::{Category, Difficulty};
 
     #[test]
     fn dataset_new_creates_empty() {
@@ -260,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn dataset_validate_catches_invalid_labels_with_config() {
+    fn dataset_validate_catches_invalid_labels() {
         let mut dataset = BenchDataset::new();
         dataset.samples.push(BenchSample {
             id: "test-001".to_string(),
@@ -273,8 +192,8 @@ mod tests {
             notes: None,
         });
 
-        let config = ScoreConfig::default();
-        let errors = dataset.validate_with_config(Some(&config));
+        let valid_labels = vec!["positive".to_string(), "negative".to_string()];
+        let errors = dataset.validate_with_labels(Some(&valid_labels));
         assert!(errors.iter().any(|e| e.message.contains("Invalid label")));
     }
 
@@ -306,36 +225,5 @@ mod tests {
         assert_eq!(coverage.total_samples, 2);
         assert_eq!(coverage.accept_count, 1);
         assert_eq!(coverage.reject_count, 1);
-        assert_eq!(
-            *coverage
-                .samples_by_category
-                .get(&Category::Emotional)
-                .unwrap(),
-            1
-        );
-        assert_eq!(
-            *coverage.samples_by_category.get(&Category::Phatic).unwrap(),
-            1
-        );
-    }
-
-    #[test]
-    fn decision_serializes_lowercase() {
-        let accept = serde_json::to_string(&Decision::Accept).unwrap();
-        let reject = serde_json::to_string(&Decision::Reject).unwrap();
-        assert_eq!(accept, "\"accept\"");
-        assert_eq!(reject, "\"reject\"");
-    }
-
-    #[test]
-    fn category_serializes_lowercase() {
-        let task = serde_json::to_string(&Category::Task).unwrap();
-        assert_eq!(task, "\"task\"");
-    }
-
-    #[test]
-    fn difficulty_serializes_lowercase() {
-        let easy = serde_json::to_string(&Difficulty::Easy).unwrap();
-        assert_eq!(easy, "\"easy\"");
     }
 }

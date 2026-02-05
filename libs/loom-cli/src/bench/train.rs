@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use loom::runtime::bench::RawScoreExport;
+use loom::cortex::bench::RawScoreExport;
 
 pub fn exec(path: &PathBuf, output: &PathBuf, generate_rust: bool) {
     println!("Loading raw scores from {:?}...", path);
@@ -25,7 +25,7 @@ pub fn exec(path: &PathBuf, output: &PathBuf, generate_rust: bool) {
     println!("Loaded {} samples", export.samples.len());
     println!("\nTraining Platt parameters...");
 
-    let result = loom::runtime::bench::train_platt_params(&export);
+    let result = loom::cortex::bench::train_platt_params(&export);
 
     // Display results
     println!("\n=== Training Results ===\n");
@@ -67,7 +67,7 @@ pub fn exec(path: &PathBuf, output: &PathBuf, generate_rust: bool) {
     println!("\nParameters written to {:?}", output);
 
     if generate_rust {
-        let rust_code = loom::runtime::bench::generate_rust_code(&result);
+        let rust_code = loom::cortex::bench::generate_rust_code(&result);
         println!("\n=== Rust Code ===\n");
         println!("{}", rust_code);
     }
