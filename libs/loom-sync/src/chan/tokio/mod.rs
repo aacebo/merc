@@ -295,8 +295,7 @@ mod tests {
     #[tokio::test]
     async fn close_while_sending() {
         // Use bounded channel with send_timeout
-        let (tx, mut rx): (super::TokioSender<i32>, super::TokioReceiver<i32>) = open!(10);
-
+        let (tx, mut rx): (super::TokioSender<i32>, super::TokioReceiver<i32>) = open!();
         let tx_clone = tx.clone();
         let sender = tokio::spawn(async move {
             for i in 0..1000 {
