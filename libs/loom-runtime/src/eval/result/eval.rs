@@ -14,6 +14,12 @@ pub struct EvalResult {
     pub per_category: HashMap<String, CategoryResult>,
     pub per_label: HashMap<String, LabelResult>,
     pub sample_results: Vec<SampleResult>,
+    /// Total evaluation time in milliseconds.
+    #[serde(default)]
+    pub elapsed_ms: i64,
+    /// Throughput in samples per second.
+    #[serde(default)]
+    pub throughput: f32,
 }
 
 impl EvalResult {
@@ -25,6 +31,8 @@ impl EvalResult {
             per_category: HashMap::new(),
             per_label: HashMap::new(),
             sample_results: Vec::new(),
+            elapsed_ms: 0,
+            throughput: 0.0,
         }
     }
 

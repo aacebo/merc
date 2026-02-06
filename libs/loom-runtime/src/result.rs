@@ -1,3 +1,26 @@
+//! Result types for loom-runtime pipeline output.
+//!
+//! # Metadata Key Standards
+//!
+//! The following metadata keys are used across layers and results:
+//!
+//! | Key | Type | Description |
+//! |-----|------|-------------|
+//! | `elapsed_ms` | `i64` | Execution time in milliseconds |
+//! | `start_time` | `String` | ISO-8601 timestamp of execution start |
+//! | `step` | `i64` | Processing step number in pipeline |
+//! | `text` | `String` | Input text that was processed |
+//! | `inference_ms` | `i64` | Model inference time only (excludes overhead) |
+//! | `batch_count` | `i64` | Number of batches processed |
+//!
+//! # Example
+//!
+//! ```ignore
+//! let result = layer.invoke(ctx)?;
+//! let elapsed = result.meta.get("elapsed_ms"); // i64 milliseconds
+//! let start = result.meta.get("start_time");   // ISO-8601 string
+//! ```
+
 use std::collections::BTreeMap;
 
 use loom_core::{Map, value::Value};
@@ -5,10 +28,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::eval::score::ScoreResult;
 
-/// Top-level result aggregating all layer outputs
+/// Top-level result aggregating all layer outputs.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LoomResult {
-    /// Pipeline-level metadata (timing, input text, etc.)
+    /// Pipeline-level metadata.
+    ///
+    /// Standard keys: `elapsed_ms`, `start_time`, `text`
     #[serde(default)]
     pub meta: Map,
 
@@ -94,10 +119,12 @@ impl From<ScoreResult> for LoomResult {
     }
 }
 
-/// Generic layer result that can store any layer output
+/// Generic layer result that can store any layer output.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LayerResult {
-    /// Layer execution metadata (duration_ms, model, etc.)
+    /// Layer execution metadata.
+    ///
+    /// Standard keys: `elapsed_ms`, `start_time`, `step`, `text`, `inference_ms`
     #[serde(default)]
     pub meta: Map,
     /// The layer output as a dynamic Value (allows any layer type)

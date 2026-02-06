@@ -1,10 +1,10 @@
-# Phase 04: Result Operators
+# Phase 03: Result Operators
 
 **Status:** PENDING
 
 **Crate:** loom-pipe
 
-**Depends on:** Phase 03 (control flow operators)
+**Depends on:** Phase 02 (control flow operators)
 
 ## Goal
 

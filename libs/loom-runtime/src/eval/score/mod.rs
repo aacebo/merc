@@ -142,22 +142,11 @@ impl ScoreLayer {
         }
 
         // Add timing metadata
-        let elapse = chrono::Utc::now() - started_at;
-        let mut elapse_message = format!("{}ms", elapse.num_milliseconds());
-
-        if elapse.num_seconds() > 0 {
-            elapse_message = format!("{}s", elapse.num_seconds());
-        }
-
-        if elapse.num_minutes() > 0 {
-            elapse_message = format!("{}m", elapse.num_minutes());
-        }
-
-        if elapse.num_hours() > 0 {
-            elapse_message = format!("{}h", elapse.num_hours());
-        }
-
-        result.meta.set("elapse", elapse_message.into());
+        let elapsed_ms = (chrono::Utc::now() - started_at).num_milliseconds();
+        result.meta.set("elapsed_ms", elapsed_ms.into());
+        result
+            .meta
+            .set("start_time", started_at.to_rfc3339().into());
         result.meta.set("step", ctx.step.into());
         result.meta.set("text", ctx.text.clone().into());
         Ok(result)
@@ -349,6 +338,7 @@ impl ScoreLayer {
     where
         F: Fn(Progress) + Send + Sync + 'static,
     {
+        let eval_start = std::time::Instant::now();
         let total = dataset.samples.len();
         let on_progress = Arc::new(on_progress);
 
@@ -381,7 +371,7 @@ impl ScoreLayer {
                     for ((_idx, sample), output) in
                         batch_samples.into_iter().zip(outputs.into_iter())
                     {
-                        let sample_result = Self::evaluate_output(&sample, output);
+                        let sample_result = Self::evaluate_output(&sample, output, None);
 
                         processed += 1;
                         on_progress(Progress {
@@ -405,6 +395,7 @@ impl ScoreLayer {
                             score: 0.0,
                             expected_labels: sample.expected_labels.clone(),
                             detected_labels: vec![],
+                            elapsed_ms: None,
                         };
 
                         processed += 1;
@@ -421,7 +412,16 @@ impl ScoreLayer {
             }
         }
 
-        Self::build_result(all_results)
+        // Calculate timing metrics
+        let elapsed = eval_start.elapsed();
+        let elapsed_ms = elapsed.as_millis() as i64;
+        let throughput = if elapsed.as_secs_f32() > 0.0 {
+            total as f32 / elapsed.as_secs_f32()
+        } else {
+            0.0
+        };
+
+        Self::build_result(all_results, elapsed_ms, throughput)
     }
 
     /// Evaluate a dataset and capture raw scores.
@@ -437,6 +437,7 @@ impl ScoreLayer {
     where
         F: Fn(Progress) + Send + Sync + 'static,
     {
+        let eval_start = std::time::Instant::now();
         let total = dataset.samples.len();
         let on_progress = Arc::new(on_progress);
 
@@ -468,7 +469,7 @@ impl ScoreLayer {
                     {
                         let raw_scores: HashMap<String, f32> =
                             output.labels().into_iter().collect();
-                        let sample_result = Self::evaluate_output(&sample, output);
+                        let sample_result = Self::evaluate_output(&sample, output, None);
 
                         processed += 1;
                         on_progress(Progress {
@@ -491,6 +492,7 @@ impl ScoreLayer {
                             score: 0.0,
                             expected_labels: sample.expected_labels.clone(),
                             detected_labels: vec![],
+                            elapsed_ms: None,
                         };
 
                         processed += 1;
@@ -507,7 +509,16 @@ impl ScoreLayer {
             }
         }
 
-        Self::build_result_with_scores(all_results)
+        // Calculate timing metrics
+        let elapsed = eval_start.elapsed();
+        let elapsed_ms = elapsed.as_millis() as i64;
+        let throughput = if elapsed.as_secs_f32() > 0.0 {
+            total as f32 / elapsed.as_secs_f32()
+        } else {
+            0.0
+        };
+
+        Self::build_result_with_scores(all_results, elapsed_ms, throughput)
     }
 
     /// Export raw scores for Platt calibration training.
@@ -605,7 +616,11 @@ impl ScoreLayer {
     // === Private helper methods ===
 
     /// Evaluate a batch output for a sample.
-    fn evaluate_output<O: ScorerOutput>(sample: &Sample, output: O) -> SampleResult {
+    fn evaluate_output<O: ScorerOutput>(
+        sample: &Sample,
+        output: O,
+        elapsed_ms: Option<i64>,
+    ) -> SampleResult {
         let detected_labels = output.detected_labels();
         let actual_decision = output.decision();
         let score = output.score();
@@ -618,6 +633,7 @@ impl ScoreLayer {
             score,
             expected_labels: sample.expected_labels.clone(),
             detected_labels,
+            elapsed_ms,
         }
     }
 
@@ -655,9 +671,15 @@ impl ScoreLayer {
     }
 
     /// Build a EvalResult from sample results.
-    fn build_result(samples_and_results: Vec<(Sample, SampleResult)>) -> EvalResult {
+    fn build_result(
+        samples_and_results: Vec<(Sample, SampleResult)>,
+        elapsed_ms: i64,
+        throughput: f32,
+    ) -> EvalResult {
         let mut result = EvalResult::new();
         result.total = samples_and_results.len();
+        result.elapsed_ms = elapsed_ms;
+        result.throughput = throughput;
 
         for (sample, sample_result) in samples_and_results {
             if sample_result.correct {
@@ -683,10 +705,14 @@ impl ScoreLayer {
     /// Build a EvalResult from sample results with raw scores.
     fn build_result_with_scores(
         samples_and_results: Vec<(Sample, SampleResult, HashMap<String, f32>)>,
+        elapsed_ms: i64,
+        throughput: f32,
     ) -> (EvalResult, HashMap<String, HashMap<String, f32>>) {
         let mut result = EvalResult::new();
         let mut raw_scores_map: HashMap<String, HashMap<String, f32>> = HashMap::new();
         result.total = samples_and_results.len();
+        result.elapsed_ms = elapsed_ms;
+        result.throughput = throughput;
 
         for (sample, sample_result, raw_scores) in samples_and_results {
             if sample_result.correct {

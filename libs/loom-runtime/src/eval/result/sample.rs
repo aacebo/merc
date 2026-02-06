@@ -12,4 +12,7 @@ pub struct SampleResult {
     pub score: f32,
     pub expected_labels: Vec<String>,
     pub detected_labels: Vec<String>,
+    /// Per-sample inference time in milliseconds (if available).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<i64>,
 }
