@@ -1,4 +1,6 @@
 pub mod daily_dialog;
+pub mod locomo;
+pub mod longmemeval;
 pub mod msc_self_instruct;
 pub mod multi_session_chat;
 

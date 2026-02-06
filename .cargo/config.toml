@@ -6,7 +6,7 @@ jobs = -1
 loom = "run --package loom-cli --"
 score = "run --package loom-cli -- bench score datasets/label.samples.json -o output/scores.json -c configs/score.config.yaml"
 train = "run --package loom-cli -- bench train output/scores.json -o output/params.json"
-fetch_datasets = "run --manifest-path scripts/Cargo.toml --package fetch_datasets --release --"
+scripts = "run --manifest-path scripts/Cargo.toml --release --"
 
 [env]
 RUST_BACKTRACE = "1"

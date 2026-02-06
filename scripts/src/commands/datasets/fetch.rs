@@ -1,7 +1,3 @@
-mod datasets;
-mod sample;
-mod widgets;
-
 use std::fs;
 use std::path::Path;
 
@@ -9,14 +5,17 @@ use anyhow::{Context, Result};
 use crossterm::style::{Color, ResetColor, SetForegroundColor};
 use crossterm::ExecutableCommand;
 
-use datasets::build_client;
-use sample::Dataset;
-use widgets::{ProgressBar, Widget};
+use crate::datasets::build_client;
+use crate::sample::Dataset;
+use crate::widgets::{ProgressBar, Widget};
+use crate::datasets;
 
-const DATASETS: [(&str, &str); 3] = [
+const DATASETS: [(&str, &str); 5] = [
     ("DailyDialog", "daily_dialog.samples.json"),
     ("Multi-Session Chat", "multi_session_chat.samples.json"),
     ("MSC-Self-Instruct", "msc_self_instruct.samples.json"),
+    ("LongMemEval", "longmemeval.samples.json"),
+    ("LoCoMo", "locomo.samples.json"),
 ];
 
 fn format_bytes(bytes: u64) -> String {
@@ -55,8 +54,7 @@ fn print_status(icon: char, color: Color, message: &str) {
     println!("{}", message);
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+pub async fn run() -> Result<()> {
     println!("\nFetching datasets...\n");
 
     // Get output directory (relative to project root)
@@ -85,6 +83,8 @@ async fn main() -> Result<()> {
             "DailyDialog" => datasets::daily_dialog::download(&client).await,
             "Multi-Session Chat" => datasets::multi_session_chat::download(&client).await,
             "MSC-Self-Instruct" => datasets::msc_self_instruct::download(&client).await,
+            "LongMemEval" => datasets::longmemeval::download(&client).await,
+            "LoCoMo" => datasets::locomo::download(&client).await,
             _ => unreachable!(),
         };
 
