@@ -7,6 +7,7 @@ intelligence models.
 
 <pre>
 ├── <a href="./README.md"><b>&lt;&lt;root&gt;&gt;</b></a> 👈
+├── <a href="./libs/README.md">▸ 0. Libraries</a>
 ├── <a href="./docs/1.memory.md">▸ 1. Memory</a>
 ├── <a href="./docs/2.ingestion.md">▸ 2. Ingestion</a>
 ├── <a href="./docs/3.guards.md">▸ 3. Guards</a>
