@@ -1,23 +1,68 @@
-# Phase 03: Result Operators
+# Phase 01: Control Flow & Result Operators
 
 **Status:** PENDING
 
 **Crate:** loom-pipe
 
-**Depends on:** Phase 02 (control flow operators)
+**Depends on:** (none)
 
 ## Goal
 
-Add operators for working with Result<T, E> and Option<T> types in pipelines.
+Add conditional branching, logical control flow, and Result/Option operators to loom-pipe.
 
-## Operators
+---
+
+## Control Flow Operators
+
+### if_then_else
+
+Conditional branching based on predicate:
+
+```rust
+source
+    .if_then_else(
+        |x| x > 0,      // condition
+        |x| x * 2,      // then branch
+        |x| x.abs(),    // else branch
+    )
+```
+
+### when (if without else)
+
+Execute only when condition is true:
+
+```rust
+source
+    .when(|x| x > 0, |x| x * 2)  // Only transforms when positive
+```
+
+### and
+
+Short-circuit logical AND - fails fast if condition fails:
+
+```rust
+source
+    .and(|x| validate(x))  // Returns Err if validation fails
+```
+
+### or
+
+Short-circuit logical OR - provides fallback:
+
+```rust
+source
+    .or(|| default_value())  // Uses fallback if source fails
+```
+
+---
+
+## Result Operators
 
 ### retry(n)
 
 Retry failed operations up to n times:
 
 ```rust
-// Only available when pipeline returns Result<T, E>
 source
     .map(|x| fallible_operation(x))
     .retry(3)  // up to 3 attempts
@@ -27,7 +72,6 @@ With exponential backoff:
 
 ```rust
 source
-    .map(|x| fallible_operation(x))
     .retry_with(RetryConfig {
         max_attempts: 3,
         initial_delay: Duration::from_millis(100),
@@ -85,11 +129,48 @@ source
     .ok()  // Result<T, E> -> Option<T>
 ```
 
+---
+
 ## Implementation
+
+### File: `libs/loom-pipe/src/operators/branch.rs`
+
+```rust
+use crate::Pipe;
+
+/// Conditional branching operator
+pub struct IfThenElse<I, C, T, E> {
+    input: I,
+    condition: C,
+    then_fn: T,
+    else_fn: E,
+}
+
+impl<I, C, T, E, O> Pipe for IfThenElse<I, C, T, E>
+where
+    I: Pipe,
+    C: Fn(&I::Output) -> bool,
+    T: Fn(I::Output) -> O,
+    E: Fn(I::Output) -> O,
+{
+    type Output = O;
+
+    fn run(self) -> Self::Output {
+        let value = self.input.run();
+        if (self.condition)(&value) {
+            (self.then_fn)(value)
+        } else {
+            (self.else_fn)(value)
+        }
+    }
+}
+```
 
 ### File: `libs/loom-pipe/src/operators/result.rs`
 
 ```rust
+use std::time::Duration;
+
 /// Retry configuration
 pub struct RetryConfig {
     pub max_attempts: usize,
@@ -98,26 +179,24 @@ pub struct RetryConfig {
 }
 
 /// Retry operator
-pub struct Retry<I, F> {
+pub struct Retry<I> {
     input: I,
-    operation: F,
     config: RetryConfig,
 }
 
-impl<I, F, T, E> Pipe for Retry<I, F>
+impl<I, T, E> Pipe for Retry<I>
 where
-    I: Pipe,
-    F: Fn(I::Output) -> Result<T, E>,
+    I: Pipe<Output = Result<T, E>>,
+    I: Clone,
 {
     type Output = Result<T, E>;
 
     fn run(self) -> Self::Output {
-        let value = self.input.run();
         let mut attempts = 0;
         let mut delay = self.config.initial_delay;
 
         loop {
-            match (self.operation)(value.clone()) {
+            match self.input.clone().run() {
                 Ok(v) => return Ok(v),
                 Err(e) if attempts < self.config.max_attempts => {
                     attempts += 1;
@@ -133,35 +212,15 @@ where
 }
 ```
 
-### Trait Extension
-
-```rust
-pub trait ResultPipe: Pipe {
-    fn retry(self, max_attempts: usize) -> Retry<Self>
-    where
-        Self: Sized,
-        Self::Output: Clone;
-
-    fn expect(self, msg: &str) -> Expect<Self>
-    where
-        Self: Sized;
-
-    fn unwrap(self) -> Unwrap<Self>
-    where
-        Self: Sized;
-
-    fn unwrap_or<T>(self, default: T) -> UnwrapOr<Self, T>
-    where
-        Self: Sized;
-}
-```
+---
 
 ## Files to Create
 
 | File | Description |
 |------|-------------|
-| `libs/loom-pipe/src/operators/result.rs` | Result operators |
-| `libs/loom-pipe/src/operators/option.rs` | Option operators (if separate) |
+| `libs/loom-pipe/src/operators/branch.rs` | IfThenElse, When operators |
+| `libs/loom-pipe/src/operators/logical.rs` | And, Or operators |
+| `libs/loom-pipe/src/operators/result.rs` | Retry, Unwrap, Expect operators |
 
 ## Files to Modify
 
@@ -174,5 +233,7 @@ pub trait ResultPipe: Pipe {
 
 1. `cargo build -p loom-pipe`
 2. `cargo test -p loom-pipe`
-3. Test retry with failing operation
-4. Test unwrap variants with success/failure cases
+3. Test conditional branching with various predicates
+4. Test short-circuit behavior of and/or
+5. Test retry with failing operation
+6. Test unwrap variants with success/failure cases

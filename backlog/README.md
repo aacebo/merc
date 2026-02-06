@@ -4,43 +4,32 @@
 
 | Phase | Description | Crate | Status |
 |-------|-------------|-------|--------|
-| [01-error-aggregation](01-error-aggregation.md) | Hierarchical layer errors | runtime | PENDING |
-| [02-control-flow-ops](02-control-flow-ops.md) | if/then/else, and/or | pipe | PENDING |
-| [03-result-operators](03-result-operators.md) | retry, expect/unwrap | pipe | PENDING |
-| [04-collection-ops](04-collection-ops.md) | flatten, chunk, window | pipe | PENDING |
-| [05-time-operators](05-time-operators.md) | timeout, debounce | pipe | PENDING |
-| [06-multi-file-merge](06-multi-file-merge.md) | Config file includes/refs | config | PENDING |
+| [01-control-result-ops](01-control-result-ops.md) | if/then/else, and/or, retry, unwrap | pipe | PENDING |
+| [02-collection-ops](02-collection-ops.md) | flatten, chunk, window | pipe | PENDING |
+| [03-time-operators](03-time-operators.md) | timeout, debounce | pipe | PENDING |
+| [04-multi-file-merge](04-multi-file-merge.md) | Config file includes/refs | config | PENDING |
 
 ## Priority Tiers
 
-### Tier 1: Runtime Infrastructure
-- **Phase 01**: Error aggregation - Hierarchical error support
+### Tier 1: Pipe Operators - Foundation
+- **Phase 01**: Control flow & result ops - if/then/else, and/or, retry, unwrap
 
-### Tier 2: Pipe Operators - Foundation
-- **Phase 02**: Control flow - if/then/else, and/or
-- **Phase 03**: Result operators - retry, expect/unwrap
+### Tier 2: Pipe Operators - Advanced
+- **Phase 02**: Collection operators - flatten, chunk, window
+- **Phase 03**: Time operators - timeout, debounce
 
-### Tier 3: Pipe Operators - Advanced
-- **Phase 04**: Collection operators - flatten, chunk, window
-- **Phase 05**: Time operators - timeout, debounce
-
-### Tier 4: Config Enhancement
-- **Phase 06**: Multi-file config merge
+### Tier 3: Config Enhancement
+- **Phase 04**: Multi-file config merge
 
 ## Dependencies
 
 ```
-Phase 01 (Errors) - Independent
+Phase 01 (Control/Result) ──┬─► Phase 02 (Collection)
+                            │
+                            └─► Phase 03 (Time)
 
 
-Phase 02 (Control) ──┬─► Phase 03 (Result)
-                     │
-                     └─► Phase 04 (Collection)
-                              │
-                              └──► Phase 05 (Time)
-
-
-Phase 06 (Config) - Independent
+Phase 04 (Config) - Independent
 ```
 
 ## Completed Work Summary
@@ -55,6 +44,7 @@ The following phases have been completed and their documentation archived:
 - **Fork/Join** - Renamed spawn→fork, added .join()
 - **Simplify Structure** - Merged modules, flattened CLI
 - **Result Metadata** - Timing and resource metrics (elapsed_ms, throughput)
+- **Error Aggregation** - Hierarchical layer errors with loom_error::Result support
 
 ## Environment Variable Support
 

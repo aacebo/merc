@@ -8,14 +8,18 @@ pub use group::*;
 
 use std::{any::Any, backtrace::Backtrace, collections::BTreeMap, sync::Arc};
 
+use serde::{Deserialize, Serialize};
+
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Error {
     code: ErrorCode,
     message: Option<String>,
     fields: BTreeMap<String, String>,
+    #[serde(skip)]
     backtrace: Option<Arc<Backtrace>>,
+    #[serde(skip)]
     inner: Option<Arc<dyn std::error::Error + Send + Sync + 'static>>,
 }
 

@@ -2517,6 +2517,9 @@ dependencies = [
 [[package]]
 name = "loom-error"
 version = "0.0.1"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "loom-io"

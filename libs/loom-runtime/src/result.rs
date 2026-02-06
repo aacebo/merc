@@ -73,9 +73,12 @@ impl LoomResult {
     #[cfg(feature = "json")]
     pub fn score(&self) -> Option<ScoreResult> {
         self.layer("score").and_then(|lr| {
-            // Convert loom_core::Value to serde_json::Value, then deserialize
-            let json: serde_json::Value = (&lr.output).into();
-            serde_json::from_value(json).ok()
+            // Only extract if output is Ok
+            lr.output.as_ref().ok().and_then(|output| {
+                // Convert loom_core::Value to serde_json::Value, then deserialize
+                let json: serde_json::Value = output.into();
+                serde_json::from_value(json).ok()
+            })
         })
     }
 
@@ -127,15 +130,29 @@ pub struct LayerResult {
     /// Standard keys: `elapsed_ms`, `start_time`, `step`, `text`, `inference_ms`
     #[serde(default)]
     pub meta: Map,
-    /// The layer output as a dynamic Value (allows any layer type)
-    pub output: Value,
+    /// The layer output (Ok) or error (Err).
+    pub output: loom_error::Result<Value>,
+    /// Child results for sub-operations.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub children: Vec<loom_error::Result<Value>>,
 }
 
 impl LayerResult {
+    /// Create a new successful result.
     pub fn new(output: impl Into<Value>) -> Self {
         Self {
             meta: Map::new(),
-            output: output.into(),
+            output: Ok(output.into()),
+            children: Vec::new(),
+        }
+    }
+
+    /// Create a new error result.
+    pub fn from_error(error: loom_error::Error) -> Self {
+        Self {
+            meta: Map::new(),
+            output: Err(error),
+            children: Vec::new(),
         }
     }
 
@@ -144,13 +161,37 @@ impl LayerResult {
         self.meta.set(key, value.into());
         self
     }
+
+    /// Set the output to a successful value.
+    pub fn ok(mut self, output: impl Into<Value>) -> Self {
+        self.output = Ok(output.into());
+        self
+    }
+
+    /// Set the output to an error.
+    pub fn error(mut self, error: loom_error::Error) -> Self {
+        self.output = Err(error);
+        self
+    }
+
+    /// Add a child result.
+    pub fn add(mut self, child: loom_error::Result<Value>) -> Self {
+        self.children.push(child);
+        self
+    }
+
+    /// Returns true if output is Ok and all children are Ok.
+    pub fn is_ok(&self) -> bool {
+        self.output.is_ok() && self.children.iter().all(|c| c.is_ok())
+    }
 }
 
 impl Default for LayerResult {
     fn default() -> Self {
         Self {
             meta: Map::new(),
-            output: Value::Null,
+            output: Ok(Value::Null),
+            children: Vec::new(),
         }
     }
 }
@@ -212,5 +253,50 @@ mod tests {
         let loom_result: LoomResult = score_result.into();
 
         assert!(loom_result.layer("score").is_some());
+    }
+
+    #[test]
+    fn layer_result_ok() {
+        let result = LayerResult::new("success");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn layer_result_error() {
+        let err = loom_error::Error::builder()
+            .code(loom_error::ErrorCode::NotFound)
+            .message("not found")
+            .build();
+        let result = LayerResult::from_error(err);
+        assert!(!result.is_ok());
+    }
+
+    #[test]
+    fn layer_result_with_children() {
+        let result = LayerResult::new(Value::Null)
+            .add(Ok("child1".into()))
+            .add(Err(loom_error::Error::builder()
+                .message("child failed")
+                .build()));
+
+        assert!(!result.is_ok()); // has an error child
+    }
+
+    #[test]
+    fn layer_result_all_children_ok() {
+        let result = LayerResult::new(Value::Null)
+            .add(Ok("first".into()))
+            .add(Ok("second".into()));
+
+        assert!(result.is_ok()); // output ok + all children ok
+    }
+
+    #[test]
+    fn layer_result_ok_error_methods() {
+        let result = LayerResult::default()
+            .ok("value")
+            .error(loom_error::Error::builder().message("failed").build());
+
+        assert!(!result.is_ok()); // last call was error()
     }
 }
