@@ -1,0 +1,53 @@
+//! Evaluation module for scoring and benchmarking.
+//!
+//! This module provides infrastructure for running evaluations against datasets,
+//! validating datasets, and exporting scores for Platt calibration training.
+//!
+//! # Architecture
+//!
+//! - **Operational types** (dataset, results) live here in runtime
+//! - **Score layer** provides scoring/classification functionality
+//! - **ML types** (Scorer trait, Platt calibration) live in cortex
+//!
+//! # Example
+//!
+//! ```ignore
+//! use loom_runtime::{Runtime, FileSystemSource, JsonCodec, eval};
+//! use loom_io::path::{Path, FilePath};
+//!
+//! let runtime = Runtime::new()
+//!     .source(FileSystemSource::builder().build())
+//!     .codec(JsonCodec::new())
+//!     .build();
+//!
+//! let path = Path::File(FilePath::parse("samples.json"));
+//! let dataset: eval::SampleDataset = runtime.load("file_system", &path).await?;
+//!
+//! let errors = dataset.validate();
+//! ```
+
+// Operational types - owned by runtime
+mod dataset;
+mod difficulty;
+mod progress;
+pub mod result;
+mod sample;
+pub mod score;
+mod validation;
+
+// Public exports - operational types
+pub use dataset::*;
+pub use difficulty::*;
+pub use progress::*;
+pub use result::*;
+pub use sample::*;
+pub use validation::*;
+
+// Re-export ML types from cortex for convenience
+pub use loom_cortex::bench::{AsyncScorer, BatchScorer, Decision, Scorer, ScorerOutput};
+
+// Re-export Platt calibration types and functions from cortex
+pub use loom_cortex::bench::platt::{
+    PlattParams, PlattTrainingResult, RawScoreExport, SampleScores, generate_rust_code,
+    train_platt_params,
+};

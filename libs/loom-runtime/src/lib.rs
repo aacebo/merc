@@ -1,11 +1,11 @@
-pub mod bench;
 mod config;
 mod context;
+pub mod eval;
 mod result;
-pub mod score;
 
 pub use config::*;
 pub use context::*;
+pub use eval::score::ScoreConfig;
 pub use result::*;
 
 use std::sync::Arc;
@@ -76,7 +76,7 @@ impl Runtime {
     ///
     /// # Example
     /// ```ignore
-    /// let dataset: BenchDataset = runtime.load("file_system", &path).await?;
+    /// let dataset: SampleDataset = runtime.load("file_system", &path).await?;
     /// ```
     pub async fn load<T: DeserializeOwned>(&self, source: &str, path: &Path) -> Result<T> {
         let source = self.sources.get(source).ok_or_else(|| {

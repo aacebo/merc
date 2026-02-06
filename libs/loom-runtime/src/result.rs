@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use loom_core::{Map, decode, encode, value::Value};
+use loom_core::{Map, value::Value};
 use serde::{Deserialize, Serialize};
 
-use crate::score::ScoreResult;
+use crate::eval::score::ScoreResult;
 
 /// Top-level result aggregating all layer outputs
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -45,11 +45,52 @@ impl LoomResult {
     }
 
     /// Get score layer result (typed)
+    #[cfg(feature = "json")]
     pub fn score(&self) -> Option<ScoreResult> {
         self.layer("score").and_then(|lr| {
-            let json_str = encode!(&lr.output; json).ok()?;
-            decode!(&json_str; json).ok()
+            // Convert loom_core::Value to serde_json::Value, then deserialize
+            let json: serde_json::Value = (&lr.output).into();
+            serde_json::from_value(json).ok()
         })
+    }
+
+    /// Create a LoomResult from a ScoreResult.
+    ///
+    /// This is a convenience method for converting pipeline output to LoomResult.
+    /// The score result is stored under the "score" layer key.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let pipeline = config.build()?;
+    /// let score_result = pipeline.execute(context)?;
+    /// let loom_result = LoomResult::from_score(score_result);
+    /// ```
+    pub fn from_score(score_result: ScoreResult) -> Self {
+        Self::from_score_with_meta(score_result, Map::new())
+    }
+
+    /// Create a LoomResult from a ScoreResult with additional metadata.
+    ///
+    /// # Arguments
+    /// * `score_result` - The score result to wrap
+    /// * `meta` - Pipeline-level metadata (e.g., timing, input text)
+    pub fn from_score_with_meta(score_result: ScoreResult, meta: Map) -> Self {
+        let layer_result = LayerResult::new(score_result);
+        Self::new()
+            .with_meta_map(meta)
+            .with_layer("score", layer_result)
+    }
+
+    /// Set metadata from a Map
+    fn with_meta_map(mut self, meta: Map) -> Self {
+        self.meta = meta;
+        self
+    }
+}
+
+impl From<ScoreResult> for LoomResult {
+    fn from(score_result: ScoreResult) -> Self {
+        Self::from_score(score_result)
     }
 }
 
@@ -90,6 +131,7 @@ impl Default for LayerResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     #[test]
     fn loom_result_default() {
@@ -114,5 +156,34 @@ mod tests {
 
         assert!(layer.meta.exists("duration_ms"));
         assert!(layer.meta.exists("model"));
+    }
+
+    #[test]
+    fn loom_result_from_score() {
+        let score_result = ScoreResult::new(BTreeMap::new());
+        let loom_result = LoomResult::from_score(score_result);
+
+        assert!(loom_result.layer("score").is_some());
+        assert!(loom_result.score().is_some());
+    }
+
+    #[test]
+    fn loom_result_from_score_with_meta() {
+        let score_result = ScoreResult::new(BTreeMap::new());
+        let mut meta = Map::new();
+        meta.set("text", "test input".into());
+
+        let loom_result = LoomResult::from_score_with_meta(score_result, meta);
+
+        assert!(loom_result.layer("score").is_some());
+        assert!(loom_result.meta.exists("text"));
+    }
+
+    #[test]
+    fn score_result_into_loom_result() {
+        let score_result = ScoreResult::new(BTreeMap::new());
+        let loom_result: LoomResult = score_result.into();
+
+        assert!(loom_result.layer("score").is_some());
     }
 }

@@ -1,14 +1,28 @@
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 
-use crate::score::ScoreConfig;
-
-/// Top-level configuration for Loom.
+/// Top-level runtime configuration for Loom.
 ///
-/// This configuration supports CLI parameter overrides at the top level,
-/// with layer-specific configurations nested under `layers`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// This configuration contains runtime settings like concurrency and output paths.
+/// Layer configurations (e.g., score) are accessed dynamically via `Config::get_section()`.
+///
+/// # Example
+/// ```ignore
+/// use loom_config::Config;
+/// use loom_core::path::IdentPath;
+///
+/// let config = load_config("config.toml")?;
+///
+/// // Get runtime settings
+/// let loom_config: LoomConfig = config.root_section().bind()?;
+///
+/// // Get layer config dynamically
+/// let score_path = IdentPath::parse("layers.score")?;
+/// let score_config: ScoreConfig = config.get_section(&score_path).bind()?;
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct LoomConfig {
     /// Output path for results
     #[serde(default)]
@@ -18,17 +32,15 @@ pub struct LoomConfig {
     #[serde(default)]
     pub strict: bool,
 
-    /// Number of parallel inference workers
+    /// Number of parallel inference workers (must be >= 1)
     #[serde(default = "LoomConfig::default_concurrency")]
+    #[validate(minimum = 1)]
     pub concurrency: usize,
 
-    /// Batch size for ML inference
+    /// Batch size for ML inference (must be >= 1)
     #[serde(default = "LoomConfig::default_batch_size")]
+    #[validate(minimum = 1)]
     pub batch_size: usize,
-
-    /// Layer configurations
-    #[serde(default)]
-    pub layers: LayersConfig,
 }
 
 impl LoomConfig {
@@ -48,20 +60,8 @@ impl Default for LoomConfig {
             strict: false,
             concurrency: Self::default_concurrency(),
             batch_size: Self::default_batch_size(),
-            layers: LayersConfig::default(),
         }
     }
-}
-
-/// Layer configurations by name.
-///
-/// Each layer type has its own configuration struct.
-/// Layers default to their respective `Default` implementations if not specified.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct LayersConfig {
-    /// Score layer configuration
-    #[serde(default)]
-    pub score: ScoreConfig,
 }
 
 #[cfg(test)]
@@ -75,6 +75,26 @@ mod tests {
         assert_eq!(config.batch_size, 8);
         assert!(!config.strict);
         assert!(config.output.is_none());
+    }
+
+    #[test]
+    fn default_config_validates() {
+        let config = LoomConfig::default();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn invalid_concurrency_fails_validation() {
+        let mut config = LoomConfig::default();
+        config.concurrency = 0;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn invalid_batch_size_fails_validation() {
+        let mut config = LoomConfig::default();
+        config.batch_size = 0;
+        assert!(config.validate().is_err());
     }
 
     #[test]
@@ -105,26 +125,18 @@ mod tests {
     }
 
     #[test]
-    fn config_deserializes_layers() {
+    fn config_ignores_unknown_fields() {
+        // LoomConfig should deserialize successfully even with layer configs present
+        // Layers are accessed separately via Config::get_section()
         let json = r#"{
+            "concurrency": 8,
             "layers": {
                 "score": {
-                    "threshold": 0.8,
-                    "top_k": 3,
-                    "categories": {
-                        "test": {
-                            "labels": {
-                                "label1": {"hypothesis": "Test"}
-                            }
-                        }
-                    }
+                    "threshold": 0.8
                 }
             }
         }"#;
         let config: LoomConfig = serde_json::from_str(json).unwrap();
-
-        assert_eq!(config.layers.score.threshold, 0.8);
-        assert_eq!(config.layers.score.top_k, 3);
-        assert_eq!(config.layers.score.categories.len(), 1);
+        assert_eq!(config.concurrency, 8);
     }
 }

@@ -19,4 +19,4 @@ ratatui = "0.29"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-loom = { workspace = true, features = ["runtime", "cortex", "core", "io", "json", "yaml", "toml"] }
+loom = { workspace = true, features = ["runtime", "cortex", "core", "io", "json", "yaml", "toml", "config"] }
