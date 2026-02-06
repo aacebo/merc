@@ -12,6 +12,7 @@ repository.workspace = true
 doctest = false
 
 [dependencies]
+async-trait = { workspace = true }
 chrono = { workspace = true }
 loom-config = { workspace = true }
 serde = { workspace = true }

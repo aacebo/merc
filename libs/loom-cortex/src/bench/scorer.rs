@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use super::Decision;
 
 /// A scorer that can evaluate text and produce a scoring output.
@@ -7,6 +9,17 @@ pub trait Scorer {
 
     /// Score the given text.
     fn score(&self, text: &str) -> Result<Self::Output, Self::Error>;
+}
+
+/// An async scorer that can evaluate text asynchronously.
+/// Use this for parallel processing of samples.
+#[async_trait]
+pub trait AsyncScorer: Send + Sync {
+    type Output: ScorerOutput + Send;
+    type Error: Send;
+
+    /// Score the given text asynchronously.
+    async fn score_async(&self, text: &str) -> Result<Self::Output, Self::Error>;
 }
 
 /// Output from a scorer containing decision, score, and label information.

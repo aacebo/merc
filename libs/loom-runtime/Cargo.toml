@@ -23,11 +23,13 @@ toml = ["loom-core/toml", "loom-config/toml", "loom-io/toml", "loom-codec/toml",
 async-trait = { workspace = true }
 blake3 = { workspace = true }
 chrono = { workspace = true }
+futures = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
 serde-saphyr = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 serde_valid = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 loom-cortex = { workspace = true }
 loom-error = { workspace = true }

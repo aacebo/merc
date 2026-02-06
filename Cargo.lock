@@ -2402,6 +2402,7 @@ dependencies = [
 name = "loom-cortex"
 version = "0.0.1"
 dependencies = [
+ "async-trait",
  "chrono",
  "console",
  "loom-config",
@@ -2443,6 +2444,7 @@ dependencies = [
  "async-trait",
  "blake3",
  "chrono",
+ "futures",
  "loom-codec",
  "loom-config",
  "loom-core",

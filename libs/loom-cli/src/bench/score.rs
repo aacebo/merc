@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use loom::core::Format;
 use loom::io::path::{FilePath, Path};
@@ -7,7 +8,7 @@ use loom::runtime::{bench, score::ScoreConfig};
 
 use super::build_runtime;
 
-pub async fn exec(path: &PathBuf, config_path: &PathBuf, output: &PathBuf) {
+pub async fn exec(path: &PathBuf, config_path: &PathBuf, output: &PathBuf, concurrency: usize) {
     println!("Loading dataset from {:?}...", path);
 
     let runtime = build_runtime();
@@ -47,10 +48,16 @@ pub async fn exec(path: &PathBuf, config_path: &PathBuf, output: &PathBuf) {
         }
     };
 
-    println!("\nExtracting raw scores...\n");
+    println!(
+        "\nExtracting raw scores with {} parallel workers...\n",
+        concurrency
+    );
 
     let total = dataset.samples.len();
-    let export = bench::export_with_progress(&dataset, &scorer, |p| {
+    let scorer = Arc::new(Mutex::new(scorer));
+    let config = bench::AsyncRunConfig { concurrency };
+
+    let export = bench::export_async_with_config(&dataset, scorer, config, |p| {
         let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
         let bar_width = 30;
         let filled = pct * bar_width / 100;
@@ -65,7 +72,8 @@ pub async fn exec(path: &PathBuf, config_path: &PathBuf, output: &PathBuf) {
             p.sample_id
         );
         let _ = io::stdout().flush();
-    });
+    })
+    .await;
 
     // Clear the progress line
     print!("\r\x1B[K");

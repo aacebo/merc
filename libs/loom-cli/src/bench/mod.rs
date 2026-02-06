@@ -31,6 +31,9 @@ pub enum BenchAction {
         /// Show detailed per-category and per-label results
         #[arg(short, long)]
         verbose: bool,
+        /// Number of parallel inference workers (default: 4)
+        #[arg(long, default_value = "4")]
+        concurrency: usize,
     },
     /// Validate a benchmark dataset
     Validate {
@@ -52,6 +55,9 @@ pub enum BenchAction {
         /// Output path for raw scores JSON
         #[arg(short, long)]
         output: PathBuf,
+        /// Number of parallel inference workers (default: 4)
+        #[arg(long, default_value = "4")]
+        concurrency: usize,
     },
     /// Train Platt calibration parameters from raw scores
     Train {
@@ -72,14 +78,16 @@ pub async fn run(action: BenchAction) {
             path,
             config,
             verbose,
-        } => run::exec(&path, &config, verbose).await,
+            concurrency,
+        } => run::exec(&path, &config, verbose, concurrency).await,
         BenchAction::Validate { path } => validate::exec(&path).await,
         BenchAction::Coverage { path } => cov::exec(&path).await,
         BenchAction::Score {
             path,
             config,
             output,
-        } => score::exec(&path, &config, &output).await,
+            concurrency,
+        } => score::exec(&path, &config, &output, concurrency).await,
         BenchAction::Train { path, output, code } => train::exec(&path, &output, code).await,
     }
 }

@@ -1,12 +1,13 @@
 use std::io::{self, Write};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use loom::io::path::{FilePath, Path};
 use loom::runtime::{bench, score::ScoreConfig};
 
 use super::build_runtime;
 
-pub async fn exec(path: &PathBuf, config_path: &PathBuf, verbose: bool) {
+pub async fn exec(path: &PathBuf, config_path: &PathBuf, verbose: bool, concurrency: usize) {
     println!("Loading dataset from {:?}...", path);
 
     let runtime = build_runtime();
@@ -46,10 +47,16 @@ pub async fn exec(path: &PathBuf, config_path: &PathBuf, verbose: bool) {
         }
     };
 
-    println!("\nRunning benchmark...\n");
+    println!(
+        "\nRunning benchmark with {} parallel workers...\n",
+        concurrency
+    );
 
     let total = dataset.samples.len();
-    let result = bench::run_with_progress(&dataset, &scorer, |p| {
+    let scorer = Arc::new(Mutex::new(scorer));
+    let config = bench::AsyncRunConfig { concurrency };
+
+    let result = bench::run_async_with_config(&dataset, scorer, config, |p| {
         let pct = (p.current as f32 / p.total as f32 * 100.0) as usize;
         let bar_width = 30;
         let filled = pct * bar_width / 100;
@@ -66,7 +73,8 @@ pub async fn exec(path: &PathBuf, config_path: &PathBuf, verbose: bool) {
             p.sample_id
         );
         let _ = io::stdout().flush();
-    });
+    })
+    .await;
 
     // Clear the progress line
     print!("\r\x1B[K");
@@ -101,6 +109,7 @@ pub async fn exec(path: &PathBuf, config_path: &PathBuf, verbose: bool) {
         println!("\n=== Per-Category Results ===\n");
         let mut categories: Vec<_> = result.per_category.iter().collect();
         categories.sort_by_key(|(cat, _)| format!("{:?}", cat));
+
         for (category, cat_result) in categories {
             let cat_metrics = metrics.per_category.get(category);
             let accuracy = cat_metrics.map(|m| m.accuracy).unwrap_or(0.0);
@@ -122,6 +131,7 @@ pub async fn exec(path: &PathBuf, config_path: &PathBuf, verbose: bool) {
 
         let mut labels: Vec<_> = result.per_label.iter().collect();
         labels.sort_by_key(|(label, _)| label.as_str());
+
         for (label, label_result) in labels {
             if label_result.expected_count > 0 || label_result.detected_count > 0 {
                 let label_metrics = metrics.per_label.get(label);

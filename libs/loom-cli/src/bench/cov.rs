@@ -54,6 +54,7 @@ pub async fn exec(path: &PathBuf) {
     println!("\n=== By Label ===\n");
     let mut labels: Vec<_> = coverage.samples_by_label.iter().collect();
     labels.sort_by_key(|(label, _)| label.as_str());
+
     for (label, count) in labels {
         let status = if *count >= 3 { "✓" } else { "○" };
         println!("  {} {:20} {}", status, label, count);

@@ -50,7 +50,7 @@ pub use sample::*;
 pub use validation::*;
 
 // Re-export ML types from cortex for convenience
-pub use loom_cortex::bench::{Scorer, ScorerOutput};
+pub use loom_cortex::bench::{AsyncScorer, Scorer, ScorerOutput};
 
 // Re-export Platt calibration types and functions from cortex
 pub use loom_cortex::bench::platt::{
