@@ -18,3 +18,19 @@ intelligence models.
     ├── <a href="./docs/reference/README.md">▸ 6.2 Reference/</a>
     └── <a href="./docs/analysis/README.md">▸ 6.3 Analysis/</a>
 </pre>
+
+## Datasets
+
+The following conversation datasets are used for training and evaluation:
+
+| Dataset | Samples | Size | Description |
+|---------|---------|------|-------------|
+| [DailyDialog](http://yanran.li/dailydialog.html) | 102,979 | 72 MB | Multi-turn dialogues with emotion and dialog act labels, covering various topics about daily life |
+| [Multi-Session Chat](https://huggingface.co/datasets/nayohan/multi_session_chat) | 3,372 | 3.6 MB | Human-human conversations across multiple sessions with persona information |
+| [MSC-Self-Instruct](https://huggingface.co/datasets/MemGPT/MSC-Self-Instruct) | 5,964 | 14 MB | Multi-session conversations with persona-grounded dialogue for memory-augmented agents |
+
+To download and convert datasets to the samples format, run:
+
+```bash
+cargo fetch_datasets
+```
