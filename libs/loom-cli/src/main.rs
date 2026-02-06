@@ -23,6 +23,9 @@ enum Commands {
         /// Path to config file (YAML/JSON/TOML)
         #[arg(short, long)]
         config: PathBuf,
+        /// Output directory for results (default: input file's directory)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
         /// Show detailed per-category and per-label results
         #[arg(short, long)]
         verbose: bool,
@@ -54,7 +57,7 @@ enum Commands {
         /// Path to config file (YAML/JSON/TOML)
         #[arg(short, long)]
         config: PathBuf,
-        /// Output path for results (overrides config)
+        /// Output directory for scores (default: input file's directory)
         #[arg(short, long)]
         output: Option<PathBuf>,
         /// Number of parallel inference workers (overrides config)
@@ -88,11 +91,23 @@ async fn main() {
         Commands::Run {
             path,
             config,
+            output,
             verbose,
             concurrency,
             batch_size,
             strict,
-        } => commands::run::exec(&path, &config, verbose, concurrency, batch_size, strict).await,
+        } => {
+            commands::run::exec(
+                &path,
+                &config,
+                output.as_ref(),
+                verbose,
+                concurrency,
+                batch_size,
+                strict,
+            )
+            .await
+        }
         Commands::Validate {
             path,
             config,

@@ -2,17 +2,19 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use loom::core::Format;
 use loom::core::path::IdentPath;
 use loom::io::path::{FilePath, Path};
 use loom::runtime::eval::score::ScoreLayer;
 use loom::runtime::{LoomConfig, ScoreConfig, eval};
 
-use super::{build_runtime, load_config};
+use super::{build_runtime, load_config, resolve_output_path};
 use crate::widgets::{self, Widget};
 
 pub async fn exec(
     path: &PathBuf,
     config_path: &PathBuf,
+    output: Option<&PathBuf>,
     verbose: bool,
     concurrency: Option<usize>,
     batch_size: Option<usize>,
@@ -51,6 +53,8 @@ pub async fn exec(
     };
 
     // Merge CLI args with config values (CLI overrides config)
+    let output_dir = output.or(loom_config.output.as_ref());
+    let output_path = resolve_output_path(path, output_dir.map(|p| p.as_path()), "results.json");
     let batch_size = batch_size.unwrap_or(loom_config.batch_size);
     let strict = strict.unwrap_or(loom_config.strict);
     let _ = concurrency; // Reserved for future multi-model parallelism
@@ -247,4 +251,24 @@ pub async fn exec(
             }
         }
     }
+
+    // Ensure output directory exists
+    if let Some(parent) = output_path.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            eprintln!("Error creating output directory: {}", e);
+            std::process::exit(1);
+        }
+    }
+
+    // Write results to output file
+    let file_path = Path::File(FilePath::from(output_path.clone()));
+    if let Err(e) = runtime
+        .save("file_system", &file_path, &result, Format::Json)
+        .await
+    {
+        eprintln!("Error writing output file: {}", e);
+        std::process::exit(1);
+    }
+
+    println!("\nResults written to {:?}", output_path);
 }

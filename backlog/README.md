@@ -11,7 +11,7 @@ This backlog tracks the refactoring and feature development for the loom project
 | [03-pipeline-rewrite](03-pipeline-rewrite.md) | Pipeline infrastructure | runtime | **COMPLETED** |
 | [04-dynamic-layers](04-dynamic-layers.md) | Runner removal, config simplification | cli/runtime | **COMPLETED** |
 | [07-simplify-structure](07-simplify-structure.md) | Merge modules, flatten CLI | cli/runtime | **COMPLETED** |
-| [05-output-behavior](05-output-behavior.md) | CLI output path handling | cli | PENDING |
+| [05-output-behavior](05-output-behavior.md) | CLI output path handling | cli | **COMPLETED** |
 | [06-fork-join](06-fork-join.md) | Rename spawn→fork, add .join() | pipe | PENDING |
 | [08-result-metadata](08-result-metadata.md) | Add timing & resource metrics | runtime | PENDING |
 | [09-error-aggregation](09-error-aggregation.md) | Hierarchical layer errors | runtime | PENDING |
@@ -23,7 +23,6 @@ This backlog tracks the refactoring and feature development for the loom project
 ## Priority Tiers
 
 ### Tier 1: Pending Core Work
-- **Phase 05**: Output behavior - CLI usability improvement
 - **Phase 06**: Fork/Join - Foundation for pipe operators
 
 ### Tier 2: Runtime Infrastructure
@@ -41,27 +40,24 @@ This backlog tracks the refactoring and feature development for the loom project
 ## Dependencies
 
 ```
-COMPLETED                      PENDING
+COMPLETED                        PENDING
 ─────────────────────────────────────────────────────
-Phase 01-04, 07 ─────────────► Phase 05 (Output)
-                               │
-                               ▼
-                          Phase 08 (Metadata)
-                               │
-                               ▼
-                          Phase 09 (Errors)
+Phase 01-05, 07 ────────────────► Phase 08 (Metadata)
+                                  │
+                                  ▼
+                             Phase 09 (Errors)
 
 
-Phase 01-04, 07 ─────────────► Phase 06 (Fork/Join)
-                               │
-                    ┌──────────┼──────────┐
-                    ▼          ▼          ▼
-               Phase 10    Phase 11   Phase 12
-             (Control)    (Result)   (Collection)
-                    │          │          │
-                    └──────────┼──────────┘
-                               ▼
-                          Phase 13 (Time)
+Phase 01-05, 07 ────────────────► Phase 06 (Fork/Join)
+                                  │
+                       ┌──────────┼──────────┐
+                       ▼          ▼          ▼
+                  Phase 10    Phase 11   Phase 12
+                (Control)    (Result)   (Collection)
+                       │          │          │
+                       └──────────┼──────────┘
+                                  ▼
+                             Phase 13 (Time)
 ```
 
 ## Completed Work
@@ -102,6 +98,15 @@ Phase 01-04, 07 ─────────────► Phase 06 (Fork/Join)
 - Renamed types: `BenchSample` → `Sample`, `BenchDataset` → `SampleDataset`, `BenchResult` → `EvalResult`, `BenchMetrics` → `EvalMetrics`
 - Merged bench and score modules into unified `eval/` module
 - Flattened CLI: `loom bench run` → `loom run`
+
+### Phase 5: Output Path Behavior
+- Added `resolve_output_path()` helper to CLI commands module
+- Output path is now a directory, auto-naming files by command:
+  - `loom score` → `scores.json`
+  - `loom run` → `results.json`
+- Default output directory is the input file's parent directory
+- Added `--output` flag to `run` command
+- Output directory is created automatically if it doesn't exist
 
 ## Environment Variable Support
 

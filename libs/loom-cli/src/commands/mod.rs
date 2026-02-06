@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use loom::config::{Config, ConfigError, EnvProvider, FileProvider};
 use loom::runtime::{FileSystemSource, JsonCodec, Runtime, TomlCodec, YamlCodec};
 
@@ -5,6 +7,24 @@ pub mod run;
 pub mod score;
 pub mod train;
 pub mod validate;
+
+/// Resolve the output file path based on input path, optional output directory, and filename.
+///
+/// # Arguments
+/// * `input_path` - Path to the input samples file
+/// * `output_dir` - Optional output directory (from config or CLI)
+/// * `filename` - The output filename (e.g., "scores.json", "results.json")
+///
+/// # Returns
+/// The resolved output file path
+pub fn resolve_output_path(
+    input_path: &Path,
+    output_dir: Option<&Path>,
+    filename: &str,
+) -> PathBuf {
+    let base_dir = output_dir.unwrap_or_else(|| input_path.parent().unwrap_or(Path::new(".")));
+    base_dir.join(filename)
+}
 
 /// Build a Runtime configured with standard sources and codecs.
 pub fn build_runtime() -> Runtime {
