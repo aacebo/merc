@@ -4,7 +4,7 @@ mod result;
 pub use config::*;
 pub use result::*;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use loom_cortex::CortexModel;
 use loom_cortex::bench::{BatchScorer, Decision, Scorer, ScorerOutput};
@@ -100,10 +100,10 @@ impl ScoreLayer {
         }
 
         // Build ScoreCategory for each category in config
-        let mut categories = Vec::new();
+        let mut categories = BTreeMap::new();
 
         for (cat_name, cat_config) in &self.config.categories {
-            let mut labels = Vec::new();
+            let mut labels = BTreeMap::new();
 
             for (label_name, label_config) in &cat_config.labels {
                 let raw_score = prediction_map
@@ -111,18 +111,12 @@ impl ScoreLayer {
                     .copied()
                     .unwrap_or(0.0);
 
-                let score_label = ScoreLabel::new(
-                    label_name.clone(),
-                    cat_name.clone(),
-                    0, // sentence index
-                )
-                .with_score(raw_score, label_config);
-
-                labels.push(score_label);
+                let score_label = ScoreLabel::new(raw_score, 0, label_config);
+                labels.insert(label_name.clone(), score_label);
             }
 
             let top_k = cat_config.top_k;
-            categories.push(ScoreCategory::topk(cat_name.clone(), labels, top_k));
+            categories.insert(cat_name.clone(), ScoreCategory::topk(labels, top_k));
         }
 
         let mut result = LayerResult::new(ScoreResult::new(categories));
@@ -214,11 +208,7 @@ impl ScorerOutput for ScoreLayerOutput {
     }
 
     fn labels(&self) -> Vec<(String, f32)> {
-        self.0
-            .labels()
-            .into_iter()
-            .map(|l: &ScoreLabel| (l.name.clone(), l.raw_score))
-            .collect()
+        self.0.raw_scores()
     }
 }
 
@@ -302,10 +292,10 @@ impl BatchScorer for ScoreLayer {
             }
 
             // Build ScoreCategory for each category in config
-            let mut categories = Vec::new();
+            let mut categories = BTreeMap::new();
 
             for (cat_name, cat_config) in &self.config.categories {
-                let mut labels = Vec::new();
+                let mut labels = BTreeMap::new();
 
                 for (label_name, label_config) in &cat_config.labels {
                     let raw_score = prediction_map
@@ -313,18 +303,12 @@ impl BatchScorer for ScoreLayer {
                         .copied()
                         .unwrap_or(0.0);
 
-                    let score_label = ScoreLabel::new(
-                        label_name.clone(),
-                        cat_name.clone(),
-                        0, // sentence index
-                    )
-                    .with_score(raw_score, label_config);
-
-                    labels.push(score_label);
+                    let score_label = ScoreLabel::new(raw_score, 0, label_config);
+                    labels.insert(label_name.clone(), score_label);
                 }
 
                 let top_k = cat_config.top_k;
-                categories.push(ScoreCategory::topk(cat_name.clone(), labels, top_k));
+                categories.insert(cat_name.clone(), ScoreCategory::topk(labels, top_k));
             }
 
             outputs.push(ScoreLayerOutput::new(ScoreResult::new(categories)));

@@ -1,3 +1,8 @@
+use std::collections::BTreeMap;
+
+use loom_core::value::Value;
+use serde::{Deserialize, Serialize};
+
 use crate::score::ScoreLabelConfig;
 
 /// Apply Platt scaling to calibrate raw model scores.
@@ -12,110 +17,118 @@ fn calibrate(raw: f32, a: f32, b: f32) -> f32 {
     1.0 / (1.0 + (-a * raw - b).exp())
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ScoreResult {
+    /// Overall score (max of category scores)
     pub score: f32,
-    pub categories: Vec<ScoreCategory>,
+    /// Categories keyed by name (mirrors config structure)
+    pub categories: BTreeMap<String, ScoreCategory>,
 }
 
 impl ScoreResult {
-    pub fn new(groups: Vec<ScoreCategory>) -> Self {
-        let mut categories = groups.clone();
-        categories.sort_by(|a, b| b.score.total_cmp(&a.score));
-
-        Self {
-            score: categories
-                .iter()
-                .map(|value| value.score)
-                .fold(0.0, f32::max),
-            categories,
-        }
+    pub fn new(categories: BTreeMap<String, ScoreCategory>) -> Self {
+        let score = categories.values().map(|c| c.score).fold(0.0f32, f32::max);
+        Self { score, categories }
     }
 
     pub fn category(&self, name: &str) -> Option<&ScoreCategory> {
-        self.categories.iter().find(|v| v.name == name)
+        self.categories.get(name)
     }
 
     pub fn category_mut(&mut self, name: &str) -> Option<&mut ScoreCategory> {
-        self.categories.iter_mut().find(|v| v.name == name)
-    }
-
-    pub fn labels(&self) -> Vec<&ScoreLabel> {
-        self.categories.iter().flat_map(|v| &v.labels).collect()
+        self.categories.get_mut(name)
     }
 
     pub fn label(&self, name: &str) -> Option<&ScoreLabel> {
-        self.labels().into_iter().find(|l| l.name == name)
+        self.categories
+            .values()
+            .flat_map(|c| c.labels.get(name))
+            .next()
     }
 
     pub fn label_score(&self, name: &str) -> f32 {
         self.label(name).map(|l| l.score).unwrap_or_default()
     }
-}
 
-#[derive(Debug, Clone)]
-pub struct ScoreCategory {
-    pub name: String,
-    pub score: f32,
-    pub labels: Vec<ScoreLabel>,
-}
-
-impl ScoreCategory {
-    pub fn topk(name: String, labels: Vec<ScoreLabel>, k: usize) -> Self {
-        let take = k.min(labels.len()).max(1);
-        let mut list = labels.clone();
-        let mut score = 0.0f32;
-
-        list.sort_by(|a, b| b.score.total_cmp(&a.score));
-        let top = list
+    /// Returns (label_name, raw_score) pairs for external use
+    pub fn raw_scores(&self) -> Vec<(String, f32)> {
+        self.categories
             .iter()
-            .take(take)
-            .map(|v| v.clone())
-            .collect::<Vec<_>>();
-
-        for label in &top {
-            score += label.score;
-        }
-
-        Self {
-            name,
-            score: if top.is_empty() {
-                0.0
-            } else {
-                score / take as f32
-            },
-            labels: list,
-        }
+            .flat_map(|(_, cat)| {
+                cat.labels
+                    .iter()
+                    .map(|(name, label)| (name.clone(), label.raw_score))
+            })
+            .collect()
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ScoreLabel {
-    pub name: String,
-    pub category: String,
+#[cfg(feature = "json")]
+impl From<ScoreResult> for Value {
+    fn from(result: ScoreResult) -> Self {
+        let json = serde_json::to_value(&result).expect("ScoreResult is serializable");
+        Value::from(json)
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ScoreCategory {
+    /// Category score (avg of top-k labels)
     pub score: f32,
+    /// Labels keyed by name (mirrors config structure)
+    pub labels: BTreeMap<String, ScoreLabel>,
+}
+
+impl ScoreCategory {
+    pub fn new(labels: BTreeMap<String, ScoreLabel>) -> Self {
+        let score = if labels.is_empty() {
+            0.0
+        } else {
+            labels.values().map(|l| l.score).sum::<f32>() / labels.len() as f32
+        };
+        Self { score, labels }
+    }
+
+    pub fn topk(labels: BTreeMap<String, ScoreLabel>, k: usize) -> Self {
+        let take = k.min(labels.len()).max(1);
+
+        // Sort by score for top-k calculation
+        let mut sorted: Vec<_> = labels.values().collect();
+        sorted.sort_by(|a, b| b.score.total_cmp(&a.score));
+
+        let score = if sorted.is_empty() {
+            0.0
+        } else {
+            sorted.iter().take(take).map(|l| l.score).sum::<f32>() / take as f32
+        };
+
+        Self { score, labels }
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ScoreLabel {
+    /// Calibrated score (raw * weight, if above threshold)
+    pub score: f32,
+    /// Raw model output before calibration
     pub raw_score: f32,
+    /// Sentence index (for multi-sentence inputs)
     pub sentence: usize,
 }
 
 impl ScoreLabel {
-    pub fn new(name: String, category: String, sentence: usize) -> Self {
+    pub fn new(raw_score: f32, sentence: usize, config: &ScoreLabelConfig) -> Self {
+        let calibrated = calibrate(raw_score, config.platt_a, config.platt_b);
+        let score = if calibrated >= config.threshold {
+            calibrated * config.weight
+        } else {
+            0.0
+        };
         Self {
-            name,
-            category,
-            score: 0.0,
-            raw_score: 0.0,
+            score,
+            raw_score,
             sentence,
         }
-    }
-
-    pub fn with_score(mut self, raw_score: f32, config: &ScoreLabelConfig) -> Self {
-        self.raw_score = raw_score;
-        let calibrated = calibrate(raw_score, config.platt_a, config.platt_b);
-        if calibrated >= config.threshold {
-            self.score = calibrated * config.weight;
-        }
-        self
     }
 
     pub fn ignore(&self, threshold: f32) -> bool {
@@ -262,8 +275,7 @@ mod tests {
             platt_a: 1.0,
             platt_b: 0.0,
         };
-        let score_label = ScoreLabel::new("positive".to_string(), "sentiment".to_string(), 0)
-            .with_score(0.8, &config);
+        let score_label = ScoreLabel::new(0.8, 0, &config);
         // With identity calibration (a=1.0, b=0.0), raw score passes through
         // Score = calibrated * weight = 0.8 * 0.30 = 0.24 (if above threshold 0.70)
         let expected = 0.8 * config.weight;
@@ -284,8 +296,7 @@ mod tests {
             platt_a: 1.0,
             platt_b: 0.0,
         };
-        let score_label = ScoreLabel::new("positive".to_string(), "sentiment".to_string(), 0)
-            .with_score(0.5, &config);
+        let score_label = ScoreLabel::new(0.5, 0, &config);
         assert!(
             (score_label.score - 0.0).abs() < f32::EPSILON,
             "Score below threshold should be 0, got {}",
@@ -302,8 +313,7 @@ mod tests {
             platt_a: 1.0,
             platt_b: 0.0,
         };
-        let score_label =
-            ScoreLabel::new("task".to_string(), "context".to_string(), 0).with_score(0.65, &config);
+        let score_label = ScoreLabel::new(0.65, 0, &config);
         let expected = 0.65 * config.weight;
         assert!(
             (score_label.score - expected).abs() < 0.001,
@@ -311,5 +321,71 @@ mod tests {
             expected,
             score_label.score
         );
+    }
+
+    // === ScoreCategory Tests ===
+
+    #[test]
+    fn score_category_topk() {
+        let config = ScoreLabelConfig {
+            hypothesis: "test".to_string(),
+            weight: 1.0,
+            threshold: 0.0,
+            platt_a: 1.0,
+            platt_b: 0.0,
+        };
+
+        let mut labels = BTreeMap::new();
+        labels.insert("a".to_string(), ScoreLabel::new(0.9, 0, &config));
+        labels.insert("b".to_string(), ScoreLabel::new(0.7, 0, &config));
+        labels.insert("c".to_string(), ScoreLabel::new(0.5, 0, &config));
+
+        let category = ScoreCategory::topk(labels, 2);
+        // Top 2 are 0.9 and 0.7, avg = 0.8
+        assert!(
+            (category.score - 0.8).abs() < 0.001,
+            "Expected 0.8, got {}",
+            category.score
+        );
+    }
+
+    // === ScoreResult Tests ===
+
+    #[test]
+    fn score_result_category_lookup() {
+        let mut categories = BTreeMap::new();
+        categories.insert(
+            "sentiment".to_string(),
+            ScoreCategory {
+                score: 0.5,
+                labels: BTreeMap::new(),
+            },
+        );
+
+        let result = ScoreResult::new(categories);
+        assert!(result.category("sentiment").is_some());
+        assert!(result.category("nonexistent").is_none());
+    }
+
+    #[test]
+    fn score_result_label_lookup() {
+        let config = ScoreLabelConfig {
+            hypothesis: "test".to_string(),
+            weight: 1.0,
+            threshold: 0.0,
+            platt_a: 1.0,
+            platt_b: 0.0,
+        };
+
+        let mut labels = BTreeMap::new();
+        labels.insert("positive".to_string(), ScoreLabel::new(0.8, 0, &config));
+
+        let mut categories = BTreeMap::new();
+        categories.insert("sentiment".to_string(), ScoreCategory::new(labels));
+
+        let result = ScoreResult::new(categories);
+        assert!(result.label("positive").is_some());
+        assert_eq!(result.label_score("positive"), 0.8);
+        assert_eq!(result.label_score("nonexistent"), 0.0);
     }
 }
