@@ -1,10 +1,15 @@
 mod attr;
+pub mod consumers;
+mod emitter;
 mod level;
 mod otype;
+mod span;
 
 pub use attr::*;
+pub use emitter::*;
 pub use level::*;
 pub use otype::*;
+pub use span::*;
 
 use loom_core::value::Value;
 

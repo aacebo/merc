@@ -4,6 +4,8 @@ pub mod score;
 
 pub use context::*;
 
+use std::sync::Arc;
+
 use loom_codec::{CodecRegistry, CodecRegistryBuilder};
 use loom_core::{Format, MediaType, decode, encode};
 use loom_error::Result;
@@ -23,9 +25,16 @@ pub use loom_codec::{JsonCodec, TextCodec};
 pub use loom_io::Record;
 pub use loom_io::sources::FileSystemSource;
 
+// Re-export signal types for convenience
+pub use loom_signal::{
+    Emitter, Level, NoopEmitter, Signal, SignalBroadcaster, Span, Type as SignalType,
+    consumers::{FileEmitter, MemoryEmitter, StdoutEmitter},
+};
+
 pub struct Runtime {
     codecs: CodecRegistry,
     sources: DataSourceRegistry,
+    signals: Arc<dyn Emitter + Send + Sync>,
 }
 
 impl Runtime {
@@ -39,6 +48,16 @@ impl Runtime {
 
     pub fn sources(&self) -> &DataSourceRegistry {
         &self.sources
+    }
+
+    /// Get a reference to the signal emitter.
+    pub fn emitter(&self) -> &dyn Emitter {
+        self.signals.as_ref()
+    }
+
+    /// Emit a signal through the runtime's emitter.
+    pub fn emit(&self, signal: Signal) {
+        self.signals.emit(signal);
     }
 
     pub fn pipeline<Input: Send + 'static>(&self) -> PipelineBuilder<Input, Input> {
@@ -142,6 +161,7 @@ impl Runtime {
 pub struct Builder {
     codecs: CodecRegistryBuilder,
     sources: DataSourceRegistryBuilder,
+    signals: SignalBroadcaster,
 }
 
 impl Builder {
@@ -159,10 +179,24 @@ impl Builder {
         self
     }
 
+    /// Add a signal emitter to the runtime.
+    /// Multiple emitters can be added and signals will be broadcast to all of them.
+    pub fn emitter<E: Emitter + Send + Sync + 'static>(mut self, emitter: E) -> Self {
+        self.signals = self.signals.add(emitter);
+        self
+    }
+
     pub fn build(self) -> Runtime {
+        let signals: Arc<dyn Emitter + Send + Sync> = if self.signals.is_empty() {
+            Arc::new(NoopEmitter)
+        } else {
+            Arc::new(self.signals)
+        };
+
         Runtime {
             codecs: self.codecs.build(),
             sources: self.sources.build(),
+            signals,
         }
     }
 }

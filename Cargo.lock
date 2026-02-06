@@ -2452,6 +2452,7 @@ dependencies = [
  "loom-error",
  "loom-io",
  "loom-pipe",
+ "loom-signal",
  "loom-sync",
  "serde",
  "serde-saphyr",

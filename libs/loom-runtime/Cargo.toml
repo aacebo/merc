@@ -15,9 +15,9 @@ doctest = false
 default = ["json"]
 int = []
 tokio = ["loom-sync/tokio"]
-json = ["loom-core/json", "loom-config/json", "loom-io/json", "loom-codec/json", "dep:serde_json"]
-yaml = ["loom-core/yaml", "loom-config/yaml", "loom-io/yaml", "loom-codec/yaml", "dep:serde-saphyr"]
-toml = ["loom-core/toml", "loom-config/toml", "loom-io/toml", "loom-codec/toml", "dep:toml"]
+json = ["loom-core/json", "loom-config/json", "loom-io/json", "loom-codec/json", "loom-signal/json", "dep:serde_json"]
+yaml = ["loom-core/yaml", "loom-config/yaml", "loom-io/yaml", "loom-codec/yaml", "loom-signal/yaml", "dep:serde-saphyr"]
+toml = ["loom-core/toml", "loom-config/toml", "loom-io/toml", "loom-codec/toml", "loom-signal/toml", "dep:toml"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -39,6 +39,7 @@ loom-config = { workspace = true }
 loom-io = { workspace = true }
 loom-codec = { workspace = true }
 loom-pipe = { workspace = true }
+loom-signal = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }
