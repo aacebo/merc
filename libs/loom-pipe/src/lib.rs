@@ -20,11 +20,16 @@ pub use operators::{
     BranchBuilderWithCondition,
     BranchBuilderWithThen,
     BranchPipe,
+    // Sequence
+    Chunk,
+    Concat,
     // Result/Option
     Expect,
     FanOutBuilder,
     FanOutPipe,
     FilterPipe,
+    FlatMap,
+    Flatten,
     ForkPipe,
     LogicalPipe,
     MapPipe,
@@ -45,10 +50,12 @@ pub use operators::{
     RetryPipe,
     RouterBuilder,
     RouterPipe,
+    SequencePipe,
     TryMapPipe,
     Unwrap,
     UnwrapOr,
     UnwrapOrElse,
+    Window,
 };
 
 pub trait Operator<Input> {

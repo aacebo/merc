@@ -4,6 +4,7 @@ All notable changes to `loom-pipe` will be documented in this file.
 
 ## [Unreleased]
 
+- **Sequence Operators** - `.flatten()`, `.flat_map()`, `.chunk()`, `.window()`, `.concat()`
 - **Branch Operator** - `.branch().when().then().or_else()` conditional branching with builder pattern
 - **Logical Operators** - `.and()`, `.or()`, `.or_else_map()` for Result short-circuiting
 - **Retry Operator** - `.retry().attempts().delay().backoff().run()` with exponential backoff

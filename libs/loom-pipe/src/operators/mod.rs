@@ -7,6 +7,7 @@ mod map;
 mod parallel;
 mod result;
 mod router;
+mod sequence;
 mod try_map;
 mod wait;
 
@@ -19,5 +20,6 @@ pub use map::*;
 pub use parallel::*;
 pub use result::*;
 pub use router::*;
+pub use sequence::*;
 pub use try_map::*;
 pub use wait::*;

@@ -1,10 +1,10 @@
-# Phase 02: Time Operators
+# Phase 01: Time Operators
 
 **Status:** PENDING
 
 **Crate:** loom-pipe
 
-**Depends on:** Phase 01 (collection operators)
+**Depends on:** (none - sequence operators completed)
 
 ## Goal
 

@@ -4,31 +4,36 @@
 
 | Phase | Description | Crate | Status |
 |-------|-------------|-------|--------|
-| [01-collection-ops](01-collection-ops.md) | flatten, chunk, window | pipe | PENDING |
-| [02-time-operators](02-time-operators.md) | timeout, debounce | pipe | PENDING |
-| [03-multi-file-merge](03-multi-file-merge.md) | Config file includes/refs | config | PENDING |
+| [01-time-operators](01-time-operators.md) | timeout, debounce | pipe | PENDING |
+| [02-multi-file-merge](02-multi-file-merge.md) | Config file includes/refs | config | PENDING |
+| [03-cli-command-structs](03-cli-command-structs.md) | Command struct refactor | cli | PENDING |
 
 ## Priority Tiers
 
 ### Tier 1: Pipe Operators - Advanced
-- **Phase 01**: Collection operators - flatten, chunk, window
-- **Phase 02**: Time operators - timeout, debounce
+- **Phase 01**: Time operators - timeout, debounce
 
 ### Tier 2: Config Enhancement
-- **Phase 03**: Multi-file config merge
+- **Phase 02**: Multi-file config merge
+
+### Tier 3: CLI Improvements
+- **Phase 03**: CLI command structs
 
 ## Dependencies
 
 ```
-Phase 01 (Collection) ─► Phase 02 (Time)
+Phase 01 (Time) - Independent
 
-Phase 03 (Config) - Independent
+Phase 02 (Config) - Independent
+
+Phase 03 (CLI) - Independent
 ```
 
 ## Completed Work Summary
 
 The following phases have been completed and their documentation archived:
 
+- **Sequence Operators** - flatten, flat_map, chunk, window, concat
 - **Control Flow & Result Ops** - branch, and/or, retry, unwrap/expect operators
 - **Config Integration** - loom-config crate integrated with env var support
 - **Validation** - Config validation with garde derive macros
