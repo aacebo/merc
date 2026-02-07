@@ -1,4 +1,4 @@
-# Phase 04: Multi-File Config Merge
+# Phase 03: Multi-File Config Merge
 
 **Status:** PENDING
 

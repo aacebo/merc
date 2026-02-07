@@ -4,38 +4,32 @@
 
 | Phase | Description | Crate | Status |
 |-------|-------------|-------|--------|
-| [01-control-result-ops](01-control-result-ops.md) | if/then/else, and/or, retry, unwrap | pipe | PENDING |
-| [02-collection-ops](02-collection-ops.md) | flatten, chunk, window | pipe | PENDING |
-| [03-time-operators](03-time-operators.md) | timeout, debounce | pipe | PENDING |
-| [04-multi-file-merge](04-multi-file-merge.md) | Config file includes/refs | config | PENDING |
+| [01-collection-ops](01-collection-ops.md) | flatten, chunk, window | pipe | PENDING |
+| [02-time-operators](02-time-operators.md) | timeout, debounce | pipe | PENDING |
+| [03-multi-file-merge](03-multi-file-merge.md) | Config file includes/refs | config | PENDING |
 
 ## Priority Tiers
 
-### Tier 1: Pipe Operators - Foundation
-- **Phase 01**: Control flow & result ops - if/then/else, and/or, retry, unwrap
+### Tier 1: Pipe Operators - Advanced
+- **Phase 01**: Collection operators - flatten, chunk, window
+- **Phase 02**: Time operators - timeout, debounce
 
-### Tier 2: Pipe Operators - Advanced
-- **Phase 02**: Collection operators - flatten, chunk, window
-- **Phase 03**: Time operators - timeout, debounce
-
-### Tier 3: Config Enhancement
-- **Phase 04**: Multi-file config merge
+### Tier 2: Config Enhancement
+- **Phase 03**: Multi-file config merge
 
 ## Dependencies
 
 ```
-Phase 01 (Control/Result) ──┬─► Phase 02 (Collection)
-                            │
-                            └─► Phase 03 (Time)
+Phase 01 (Collection) ─► Phase 02 (Time)
 
-
-Phase 04 (Config) - Independent
+Phase 03 (Config) - Independent
 ```
 
 ## Completed Work Summary
 
 The following phases have been completed and their documentation archived:
 
+- **Control Flow & Result Ops** - branch, and/or, retry, unwrap/expect operators
 - **Config Integration** - loom-config crate integrated with env var support
 - **Validation** - Config validation with garde derive macros
 - **Pipeline Rewrite** - Pipeline infrastructure with Layer trait

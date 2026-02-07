@@ -18,13 +18,11 @@ flowchart TB
     subgraph STACK["📚 GLOBAL PHASE STACK"]
         direction TB
         index[(backlog/README.md)]
-        p04[🔹 04-multi-file-merge.md]
-        p03[🔹 03-time-operators.md]
-        p02[🔹 02-collection-ops.md]
-        p01[🔸 01-control-result-ops.md]
+        p03[🔹 03-multi-file-merge.md]
+        p02[🔹 02-time-operators.md]
+        p01[🔸 01-collection-ops.md]
 
-        index --> p04
-        p04 --> p03
+        index --> p03
         p03 --> p02
         p02 --> p01
     end
@@ -74,7 +72,7 @@ flowchart TB
     classDef changelog fill:#fbbf24,stroke:#d97706,stroke-width:2px,color:#000
 
     class s1,s2,s3 staging
-    class p02,p03,p04 phase
+    class p02,p03 phase
     class p01 nextPhase
     class index index
     class promote,pop,complete action
@@ -135,10 +133,9 @@ libs/
 
 backlog/
 ├── README.md                  ← Phase index & completed summary
-├── 01-control-result-ops.md   ← Next up (top of stack)
-├── 02-collection-ops.md       ← Queued
-├── 03-time-operators.md       ← Queued
-└── 04-multi-file-merge.md     ← Queued
+├── 01-collection-ops.md       ← Next up (top of stack)
+├── 02-time-operators.md       ← Queued
+└── 03-multi-file-merge.md     ← Queued
 ```
 
 ## Phase Stack Rules
@@ -156,10 +153,9 @@ backlog/
 
 | # | Phase | Crate | Status |
 |---|-------|-------|--------|
-| **01** | Control Flow & Result Ops | loom-pipe | 🔸 NEXT |
-| 02 | Collection Operators | loom-pipe | 🔹 QUEUED |
-| 03 | Time Operators | loom-pipe | 🔹 QUEUED |
-| 04 | Multi-File Config Merge | loom-config | 🔹 QUEUED |
+| **01** | Collection Operators | loom-pipe | 🔸 NEXT |
+| 02 | Time Operators | loom-pipe | 🔹 QUEUED |
+| 03 | Multi-File Config Merge | loom-config | 🔹 QUEUED |
 
 ## Dependencies
 
@@ -167,21 +163,19 @@ backlog/
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#6366f1', 'primaryTextColor': '#fff', 'lineColor': '#94a3b8', 'background': '#0f172a'}}}%%
 
 flowchart TB
-    P01[01 Control/Result]
-    P02[02 Collection]
-    P03[03 Time]
-    P04[04 Config]
+    P01[01 Collection]
+    P02[02 Time]
+    P03[03 Config]
 
     P01 --> P02
-    P01 --> P03
 
     classDef next fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff
     classDef queued fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
     classDef independent fill:#f97316,stroke:#ea580c,stroke-width:2px,color:#fff
 
     class P01 next
-    class P02,P03 queued
-    class P04 independent
+    class P02 queued
+    class P03 independent
 ```
 
 ## Crate Changelogs
@@ -192,7 +186,7 @@ Each crate maintains its own `CHANGELOG.md`:
 |-------|----------------|
 | `loom-error` | Serde support for `Error` and `ErrorCode` |
 | `loom-runtime` | Error aggregation, result metadata, dynamic layers |
-| `loom-pipe` | Pipeline rewrite, fork/join operators |
+| `loom-pipe` | Branch, logical, retry, result/option operators |
 | `loom-config` | Config integration, validation with garde |
 | `loom-cli` | Output behavior, structure simplification |
 | `loom-assert` | — |
@@ -208,6 +202,7 @@ Each crate maintains its own `CHANGELOG.md`:
 
 Phases removed from stack after completion (also recorded in crate changelogs):
 
+- **Control Flow & Result Ops** - Branch, and/or, retry, unwrap/expect operators
 - **Error Aggregation** - `loom_error::Result<Value>` in `LayerResult`
 - **Config Integration** - `loom-config` crate with env var support
 - **Pipeline Rewrite** - Layer trait infrastructure

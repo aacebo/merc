@@ -10,8 +10,45 @@ pub use transformer::*;
 
 // Re-export extension traits for convenience
 pub use operators::{
-    AwaitPipe, FanOutBuilder, FanOutPipe, FilterPipe, ForkPipe, MapPipe, ParallelBuilder,
-    ParallelPipe, RouterBuilder, RouterPipe, TryMapPipe,
+    // Logical
+    And,
+    // Existing
+    AwaitPipe,
+    // Branch
+    BranchBuilderComplete,
+    BranchBuilderInit,
+    BranchBuilderWithCondition,
+    BranchBuilderWithThen,
+    BranchPipe,
+    // Result/Option
+    Expect,
+    FanOutBuilder,
+    FanOutPipe,
+    FilterPipe,
+    ForkPipe,
+    LogicalPipe,
+    MapPipe,
+    OptionExpect,
+    OptionOkOr,
+    OptionPipe,
+    OptionUnwrap,
+    OptionUnwrapOr,
+    OptionUnwrapOrElse,
+    Or,
+    OrElseMap,
+    ParallelBuilder,
+    ParallelPipe,
+    ResultOk,
+    ResultPipe,
+    Retry,
+    RetryBuilder,
+    RetryPipe,
+    RouterBuilder,
+    RouterPipe,
+    TryMapPipe,
+    Unwrap,
+    UnwrapOr,
+    UnwrapOrElse,
 };
 
 pub trait Operator<Input> {

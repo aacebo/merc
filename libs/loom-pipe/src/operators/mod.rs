@@ -1,17 +1,23 @@
+mod branch;
 mod fan_out;
 mod filter;
 mod fork;
+mod logical;
 mod map;
 mod parallel;
+mod result;
 mod router;
 mod try_map;
 mod wait;
 
+pub use branch::*;
 pub use fan_out::*;
 pub use filter::*;
 pub use fork::*;
+pub use logical::*;
 pub use map::*;
 pub use parallel::*;
+pub use result::*;
 pub use router::*;
 pub use try_map::*;
 pub use wait::*;
