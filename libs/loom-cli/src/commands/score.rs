@@ -1,15 +1,47 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 
 use clap::Args;
 use loom::core::{Format, ident_path};
 use loom::io::path::{FilePath, Path};
-use loom::runtime::eval::score::ScoreLayer;
-use loom::runtime::{LoomConfig, ScoreConfig, eval};
+use loom::runtime::{
+    Emitter, FileSystemSource, JsonCodec, Runtime, ScoreConfig, Signal, TomlCodec, YamlCodec, eval,
+};
 
-use super::{build_runtime, load_config, resolve_output_path};
+use super::{load_config, resolve_output_path};
 use crate::widgets::{self, Widget};
+
+/// Signal emitter that displays scoring progress on stdout.
+struct ScoreProgressEmitter {
+    total: usize,
+}
+
+impl ScoreProgressEmitter {
+    fn new(total: usize) -> Self {
+        Self { total }
+    }
+}
+
+impl Emitter for ScoreProgressEmitter {
+    fn emit(&self, signal: Signal) {
+        if signal.name() == "eval.progress" {
+            let attrs = signal.attributes();
+            let current = attrs.get("current").and_then(|v| v.as_int()).unwrap_or(0);
+            let sample_id = attrs
+                .get("sample_id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+
+            widgets::ProgressBar::new()
+                .total(self.total)
+                .current(current as usize)
+                .message(sample_id)
+                .status('•')
+                .render()
+                .write();
+        }
+    }
+}
 
 /// Extract raw scores for Platt calibration training
 #[derive(Debug, Args)]
@@ -47,19 +79,6 @@ impl ScoreCommand {
         let batch_size = self.batch_size;
         let strict = self.strict;
 
-        println!("Loading dataset from {:?}...", path);
-
-        let runtime = build_runtime();
-        let file_path = Path::File(FilePath::from(path.clone()));
-        let mut dataset: eval::SampleDataset = match runtime.load("file_system", &file_path).await {
-            Ok(d) => d,
-            Err(e) => {
-                eprintln!("Error loading dataset: {}", e);
-                std::process::exit(1);
-            }
-        };
-
-        println!("Loaded {} samples", dataset.samples.len());
         println!("Loading config from {:?}...", config_path);
 
         let config = match load_config(config_path.to_str().unwrap_or_default()) {
@@ -70,14 +89,30 @@ impl ScoreCommand {
             }
         };
 
-        // Bind runtime settings from root
-        let loom_config: LoomConfig = match config.root_section().bind() {
-            Ok(c) => c,
+        println!("Building runtime (this may download model files on first run)...");
+
+        // Build runtime with config in blocking task (scorer building uses rust-bert which conflicts with tokio)
+        // Note: We'll add the progress emitter after loading the dataset to know the total count
+        let runtime = match tokio::task::spawn_blocking(move || {
+            Runtime::new()
+                .source(FileSystemSource::builder().build())
+                .codec(JsonCodec::new())
+                .codec(YamlCodec::new())
+                .codec(TomlCodec::new())
+                .config(config)
+                .build()
+        })
+        .await
+        {
+            Ok(r) => r,
             Err(e) => {
-                eprintln!("Error parsing runtime config: {}", e);
+                eprintln!("Error building runtime: {}", e);
                 std::process::exit(1);
             }
         };
+
+        // Get runtime settings
+        let loom_config = runtime.config();
 
         // Merge CLI args with config values (CLI overrides config)
         let output_dir = output.or(loom_config.output.as_ref());
@@ -86,10 +121,9 @@ impl ScoreCommand {
         let strict = strict.unwrap_or(loom_config.strict);
         let _ = concurrency; // Reserved for future multi-model parallelism
 
-        // Get score config from layers dynamically
+        // Get score config for validation
         let score_path = ident_path!("layers.score");
-        let score_section = config.get_section(&score_path);
-        let score_config: ScoreConfig = match score_section.bind() {
+        let score_config: ScoreConfig = match runtime.rconfig().get_section(&score_path).bind() {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("Error parsing score config: {}", e);
@@ -104,6 +138,19 @@ impl ScoreCommand {
             .values()
             .flat_map(|c| c.labels.keys().cloned())
             .collect();
+
+        println!("Loading dataset from {:?}...", path);
+
+        let file_path = Path::File(FilePath::from(path.clone()));
+        let mut dataset: eval::SampleDataset = match runtime.load("file_system", &file_path).await {
+            Ok(d) => d,
+            Err(e) => {
+                eprintln!("Error loading dataset: {}", e);
+                std::process::exit(1);
+            }
+        };
+
+        println!("Loaded {} samples", dataset.samples.len());
 
         // Validate dataset against config
         let errors = dataset.validate_with_config(Some(&valid_categories), Some(&valid_labels));
@@ -148,42 +195,49 @@ impl ScoreCommand {
             std::process::exit(1);
         }
 
-        println!("Building scorer (this may download model files on first run)...");
-
-        // Build scorer in blocking task to avoid tokio runtime conflict with rust-bert
-        let scorer = match tokio::task::spawn_blocking(move || score_config.build())
-            .await
-            .expect("spawn_blocking failed")
-        {
-            Ok(l) => l,
-            Err(e) => {
-                eprintln!("Error building scorer: {}", e);
-                std::process::exit(1);
-            }
-        };
-
+        let total = dataset.samples.len();
         println!(
             "\nExtracting raw scores with batch size {}...\n",
             batch_size
         );
 
-        let total = dataset.samples.len();
-        let scorer = Arc::new(Mutex::new(scorer));
-
-        let progress_callback = |p: eval::Progress| {
-            let status = if p.correct { '✓' } else { '✗' };
-            widgets::ProgressBar::new()
-                .total(p.total)
-                .current(p.current)
-                .message(&p.sample_id)
-                .status(status)
-                .render()
-                .write();
+        // Rebuild runtime with progress emitter now that we know the total
+        let config = match load_config(config_path.to_str().unwrap_or_default()) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Error reloading config: {}", e);
+                std::process::exit(1);
+            }
         };
 
-        // Run benchmark and capture raw scores
+        let runtime = match tokio::task::spawn_blocking(move || {
+            Runtime::new()
+                .source(FileSystemSource::builder().build())
+                .codec(JsonCodec::new())
+                .codec(YamlCodec::new())
+                .codec(TomlCodec::new())
+                .config(config)
+                .emitter(ScoreProgressEmitter::new(total))
+                .build()
+        })
+        .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("Error rebuilding runtime: {}", e);
+                std::process::exit(1);
+            }
+        };
+
+        // Use runtime.eval_scoring_with_scores() for batch processing
         let (result, raw_scores) =
-            ScoreLayer::eval_with_scores(scorer, &dataset, batch_size, progress_callback).await;
+            match runtime.eval_scoring_with_scores(&dataset, batch_size).await {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("Error during scoring: {}", e);
+                    std::process::exit(1);
+                }
+            };
 
         // Clear the progress line
         widgets::ProgressBar::clear();

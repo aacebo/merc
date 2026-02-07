@@ -35,10 +35,6 @@ impl ScoreResult {
         self.categories.get(name)
     }
 
-    pub fn category_mut(&mut self, name: &str) -> Option<&mut ScoreCategory> {
-        self.categories.get_mut(name)
-    }
-
     pub fn label(&self, name: &str) -> Option<&ScoreLabel> {
         self.categories
             .values()
@@ -129,10 +125,6 @@ impl ScoreLabel {
             raw_score,
             sentence,
         }
-    }
-
-    pub fn ignore(&self, threshold: f32) -> bool {
-        self.score < threshold
     }
 }
 

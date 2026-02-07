@@ -5,7 +5,7 @@ use loom_error::{Error, ErrorCode, Result};
 use super::Layer;
 
 /// Type-erased layer for dynamic pipeline construction
-pub trait AnyLayer: Send {
+pub trait AnyLayer: Send + Sync {
     fn process_any(&self, input: Box<dyn Any + Send>) -> Result<Box<dyn Any + Send>>;
     fn name(&self) -> &'static str;
     fn input_type_id(&self) -> TypeId;
@@ -23,7 +23,7 @@ impl<L: Layer> LayerNode<L> {
     }
 }
 
-impl<L: Layer> AnyLayer for LayerNode<L>
+impl<L: Layer + Sync> AnyLayer for LayerNode<L>
 where
     L::Input: 'static,
     L::Output: 'static,

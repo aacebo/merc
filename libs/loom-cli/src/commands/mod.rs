@@ -3,11 +3,13 @@ use std::path::{Path, PathBuf};
 use loom::config::{Config, ConfigError, EnvProvider, FileProvider};
 use loom::runtime::{FileSystemSource, JsonCodec, Runtime, TomlCodec, YamlCodec};
 
+pub mod classify;
 pub mod run;
 pub mod score;
 pub mod train;
 pub mod validate;
 
+pub use classify::ClassifyCommand;
 pub use run::RunCommand;
 pub use score::ScoreCommand;
 pub use train::TrainCommand;

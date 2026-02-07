@@ -1,17 +1,12 @@
 //! ML-specific benchmarking types.
 //!
-//! This module contains the core ML abstractions:
-//! - `Scorer` trait for synchronous text scoring
-//! - `AsyncScorer` trait for async/parallel text scoring
-//! - `BatchScorer` trait for batch inference optimization
+//! This module contains:
 //! - `Decision` enum for accept/reject outcomes
 //! - `platt` submodule for Platt calibration training
 //!
-//! For operational types (datasets, results, runner), see `loom_runtime::bench`.
+//! For operational types (datasets, results, runner), see `loom_runtime::eval`.
 
 mod decision;
 pub mod platt;
-mod scorer;
 
 pub use decision::*;
-pub use scorer::*;

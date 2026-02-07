@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 mod commands;
 pub mod widgets;
 
-use commands::{RunCommand, ScoreCommand, TrainCommand, ValidateCommand};
+use commands::{ClassifyCommand, RunCommand, ScoreCommand, TrainCommand, ValidateCommand};
 
 /// Loom scoring engine CLI
 ///
@@ -19,6 +19,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Classify a single text
+    Classify(ClassifyCommand),
+
     /// Run evaluation against a dataset
     Run(RunCommand),
 
@@ -37,6 +40,7 @@ async fn main() {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Classify(cmd) => cmd.exec(),
         Commands::Run(cmd) => cmd.exec().await,
         Commands::Validate(cmd) => cmd.exec().await,
         Commands::Score(cmd) => cmd.exec().await,

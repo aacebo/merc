@@ -10,9 +10,6 @@ pub trait LayerContext: Send + 'static {
 
     /// Get metadata
     fn meta(&self) -> &Map;
-
-    /// Get mutable metadata
-    fn meta_mut(&mut self) -> &mut Map;
 }
 
 /// Result wrapper for layer outputs

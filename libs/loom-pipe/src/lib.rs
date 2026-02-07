@@ -4,7 +4,9 @@ pub mod pipeline;
 mod source;
 mod transformer;
 
-pub use pipeline::{Layer, LayerContext, LayerResult, Pipeline, PipelineBuilder};
+pub use pipeline::{
+    AnyLayer, Layer, LayerContext, LayerNode, LayerResult, Pipeline, PipelineBuilder,
+};
 pub use source::*;
 pub use transformer::*;
 

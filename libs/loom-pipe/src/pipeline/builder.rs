@@ -25,7 +25,7 @@ impl<Input: Send + 'static, Current: Send + 'static> PipelineBuilder<Input, Curr
     /// Add a layer to the pipeline, transforming Current -> L::Output
     pub fn then<L>(self, layer: L) -> PipelineBuilder<Input, L::Output>
     where
-        L: Layer + 'static,
+        L: Layer + Sync + 'static,
         L::Input: From<Current>,
     {
         let mut stages = self.stages;

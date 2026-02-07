@@ -7,7 +7,7 @@
 //!
 //! - **Operational types** (dataset, results) live here in runtime
 //! - **Score layer** provides scoring/classification functionality
-//! - **ML types** (Scorer trait, Platt calibration) live in cortex
+//! - **ML types** (Platt calibration) live in cortex
 //!
 //! # Example
 //!
@@ -27,22 +27,16 @@
 //! ```
 
 // Operational types - owned by runtime
-mod builder;
 mod dataset;
 mod difficulty;
-mod progress;
 pub mod result;
-mod evaluable;
 mod sample;
 pub mod score;
 mod validation;
 
 // Public exports - operational types
-pub use builder::*;
 pub use dataset::*;
 pub use difficulty::*;
-pub use progress::*;
 pub use result::*;
-pub use evaluable::*;
 pub use sample::*;
 pub use validation::*;

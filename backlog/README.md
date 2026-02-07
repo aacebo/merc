@@ -2,18 +2,23 @@
 
 ## Status Overview
 
-No pending phases. All planned work has been completed.
+Runtime architecture refactoring complete.
 
 ## Completed Work Summary
 
 The following phases have been completed and their documentation archived:
 
+- **Unified CLI Runtime** - All commands use high-level Runtime methods; added `runtime.score()`, `runtime.score_batch()`, `runtime.eval_scoring_with_scores()`; `classify` command uses `runtime.score()`; `validate --test-samples` uses `runtime.score()`; `score` command uses `runtime.eval_scoring_with_scores()`
+- **Layer Registry Integration** - runtime.score() uses runtime.eval() via ScorerLayerWrapper
+- **Remove Duplicate Traits** - Removed Evaluable, Scorer, BatchScorer, ScorerOutput traits; added `runtime.eval_scoring()` with signal-based progress; CLI uses runtime for all evaluation
+- **Layer Registry** - LayerRegistry for storing layers by name; `runtime.layer()` builder method; `runtime.eval()` for type-checked layer invocation
+- **Context Refactor** - Context as active runtime client with `emit()` and `data_source()` methods; BatchContext for batch processing; removed `meta_mut` from LayerContext trait
 - **CLI Command Structs** - Refactored CLI commands to dedicated structs with clap validation
 - **Multi-File Config Merge** - $include directive for config composition
 - **Time Operators** - timeout, delay
 - **Sequence Operators** - flatten, flat_map, chunk, window, concat
 - **Control Flow & Result Ops** - branch, and/or, retry, unwrap/expect operators
-- **Config Integration** - loom-config crate integrated with env var support
+- **Config Integration** - loom-config crate integrated with env var support; runtime owns config
 - **Validation** - Config validation with garde derive macros
 - **Pipeline Rewrite** - Pipeline infrastructure with Layer trait
 - **Dynamic Layers** - Runner removal, config simplification

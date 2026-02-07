@@ -14,5 +14,6 @@ All notable changes to `loom-pipe` will be documented in this file.
 
 ## Completed
 
+- **Context Refactor** - Removed `meta_mut()` from `LayerContext` trait (metadata now immutable during layer processing)
 - **Pipeline Rewrite** - Pipeline infrastructure with Layer trait
 - **Fork/Join** - Renamed spawn to fork, added `.join()` operator

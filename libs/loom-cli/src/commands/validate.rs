@@ -6,7 +6,9 @@ use crossterm::ExecutableCommand;
 use crossterm::style::{Color, ResetColor, SetForegroundColor};
 use loom::core::ident_path;
 use loom::io::path::{FilePath, Path};
-use loom::runtime::{ScoreConfig, eval};
+use loom::runtime::{
+    FileSystemSource, JsonCodec, Runtime, ScoreConfig, TomlCodec, YamlCodec, eval,
+};
 
 use super::{build_runtime, load_config};
 use crate::widgets::{self, Widget};
@@ -24,6 +26,10 @@ pub struct ValidateCommand {
     /// Fail if samples have categories/labels not in config (default: report errors)
     #[arg(long)]
     pub strict: bool,
+
+    /// Test N samples by running them through the scorer (requires --config)
+    #[arg(long)]
+    pub test_samples: Option<usize>,
 }
 
 impl ValidateCommand {
@@ -31,6 +37,7 @@ impl ValidateCommand {
         let path = &self.path;
         let config_path = self.config.as_ref();
         let strict = self.strict;
+        let test_samples = self.test_samples;
 
         widgets::Spinner::new()
             .message(format!("Validating dataset at {:?}...", path))
@@ -104,6 +111,68 @@ impl ValidateCommand {
             }
             if strict {
                 std::process::exit(1);
+            }
+        }
+
+        // Test samples if requested
+        if let Some(n) = test_samples {
+            if config_path.is_none() {
+                eprintln!("\nError: --test-samples requires --config to be specified");
+                std::process::exit(1);
+            }
+
+            println!("\nTesting {} sample(s)...", n.min(dataset.samples.len()));
+
+            // Build runtime with scorer config
+            let config = match load_config(config_path.unwrap().to_str().unwrap_or_default()) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("Error loading config for testing: {}", e);
+                    std::process::exit(1);
+                }
+            };
+
+            let scoring_runtime = match tokio::task::spawn_blocking(move || {
+                Runtime::new()
+                    .source(FileSystemSource::builder().build())
+                    .codec(JsonCodec::new())
+                    .codec(YamlCodec::new())
+                    .codec(TomlCodec::new())
+                    .config(config)
+                    .build()
+            })
+            .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("Error building runtime for testing: {}", e);
+                    std::process::exit(1);
+                }
+            };
+
+            println!();
+            for sample in dataset.samples.iter().take(n) {
+                // Use runtime.score() for single-text scoring
+                match scoring_runtime.score(&sample.text) {
+                    Ok(result) => {
+                        let _ = stdout.execute(SetForegroundColor(Color::Green));
+                        print!("  ✓ ");
+                        let _ = stdout.execute(ResetColor);
+                        println!(
+                            "{} → Accept (score: {:.3}, expected: {:?})",
+                            sample.id, result.score, sample.expected_decision
+                        );
+                    }
+                    Err(_) => {
+                        let _ = stdout.execute(SetForegroundColor(Color::Yellow));
+                        print!("  ○ ");
+                        let _ = stdout.execute(ResetColor);
+                        println!(
+                            "{} → Reject (expected: {:?})",
+                            sample.id, sample.expected_decision
+                        );
+                    }
+                }
             }
         }
     }

@@ -5,8 +5,8 @@ use clap::Args;
 use crossterm::ExecutableCommand;
 use crossterm::style::{Color, ResetColor, SetForegroundColor};
 use loom::core::Format;
+use loom::cortex::bench::platt::{RawScoreExport, generate_rust_code, train_platt_params};
 use loom::io::path::{FilePath, Path};
-use loom::runtime::eval;
 
 use super::build_runtime;
 use crate::widgets::{self, Widget};
@@ -40,7 +40,7 @@ impl TrainCommand {
         let runtime = build_runtime();
         let file_path = Path::File(FilePath::from(path.clone()));
 
-        let export: eval::RawScoreExport = match runtime.load("file_system", &file_path).await {
+        let export: RawScoreExport = match runtime.load("file_system", &file_path).await {
             Ok(e) => e,
             Err(e) => {
                 widgets::Spinner::clear();
@@ -57,7 +57,7 @@ impl TrainCommand {
             .render()
             .write();
 
-        let result = eval::train_platt_params(&export);
+        let result = train_platt_params(&export);
 
         widgets::Spinner::clear();
 
@@ -112,7 +112,7 @@ impl TrainCommand {
         println!("Parameters written to {:?}", output);
 
         if generate_rust {
-            let rust_code = eval::generate_rust_code(&result);
+            let rust_code = generate_rust_code(&result);
             println!("\n=== Rust Code ===\n");
             println!("{}", rust_code);
         }

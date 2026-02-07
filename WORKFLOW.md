@@ -18,10 +18,12 @@ flowchart TB
     subgraph STACK["📚 GLOBAL PHASE STACK"]
         direction TB
         index[(backlog/README.md)]
-        p02[🔹 02-cli-command-structs.md]
-        p01[🔸 01-multi-file-merge.md]
+        p03[🔹 03-cli-pipeline-integration.md]
+        p02[🔹 02-remove-duplicate-traits.md]
+        p01[🔸 01-layer-registry.md]
 
-        index --> p02
+        index --> p03
+        p03 --> p02
         p02 --> p01
     end
 
@@ -70,7 +72,7 @@ flowchart TB
     classDef changelog fill:#fbbf24,stroke:#d97706,stroke-width:2px,color:#000
 
     class s1,s2,s3 staging
-    class p02 phase
+    class p02,p03 phase
     class p01 nextPhase
     class index index
     class promote,pop,complete action
@@ -131,7 +133,9 @@ libs/
 
 backlog/
 ├── README.md                  ← Phase index & completed summary
-└── 01-cli-command-structs.md  ← Next up (top of stack)
+├── 01-layer-registry.md       ← Next up (top of stack)
+├── 02-remove-duplicate-traits.md
+└── 03-cli-pipeline-integration.md
 ```
 
 ## Phase Stack Rules
@@ -149,7 +153,9 @@ backlog/
 
 | # | Phase | Crate | Status |
 |---|-------|-------|--------|
-| **01** | CLI Command Structs | loom-cli | 🔸 NEXT |
+| **01** | Layer Registry | loom-runtime | 🔸 NEXT |
+| **02** | Remove Duplicate Traits | loom-runtime, loom-cortex | 🔹 Pending |
+| **03** | CLI Pipeline Integration | loom-cli | 🔹 Pending |
 
 ## Dependencies
 
@@ -157,11 +163,15 @@ backlog/
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#6366f1', 'primaryTextColor': '#fff', 'lineColor': '#94a3b8', 'background': '#0f172a'}}}%%
 
 flowchart TB
-    P01[01 CLI]
+    P03[03 CLI] --> P02
+    P02[02 Traits] --> P01
+    P01[01 Registry]
 
     classDef next fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff
+    classDef pending fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
 
     class P01 next
+    class P02,P03 pending
 ```
 
 ## Crate Changelogs
@@ -171,8 +181,8 @@ Each crate maintains its own `CHANGELOG.md`:
 | Crate | Recent Changes |
 |-------|----------------|
 | `loom-error` | Serde support for `Error` and `ErrorCode` |
-| `loom-runtime` | Error aggregation, result metadata, dynamic layers |
-| `loom-pipe` | Time, sequence, branch, logical, retry, result/option operators |
+| `loom-runtime` | Context refactor (runtime client), BatchContext, error aggregation, result metadata, dynamic layers |
+| `loom-pipe` | Removed meta_mut from LayerContext, time, sequence, branch, logical, retry, result/option operators |
 | `loom-config` | Multi-file config merge ($include), config integration, validation |
 | `loom-cli` | Output behavior, structure simplification |
 | `loom-assert` | — |
@@ -188,6 +198,7 @@ Each crate maintains its own `CHANGELOG.md`:
 
 Phases removed from stack after completion (also recorded in crate changelogs):
 
+- **Context Refactor** - Context as active runtime client, BatchContext for batch processing
 - **Multi-File Config Merge** - $include directive for config composition
 - **Time Operators** - Timeout, delay
 - **Sequence Operators** - Flatten, flat_map, chunk, window, concat

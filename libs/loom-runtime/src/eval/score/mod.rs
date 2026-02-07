@@ -4,16 +4,13 @@ mod result;
 pub use config::*;
 pub use result::*;
 
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::sync::{Arc, Mutex};
+use std::collections::{BTreeMap, HashMap};
 
 use loom_cortex::CortexModel;
-use loom_cortex::bench::platt::{RawScoreExport, SampleScores};
-use loom_cortex::bench::{BatchScorer, Decision, Scorer, ScorerOutput};
+use loom_cortex::bench::Decision;
 use loom_error::{Error, ErrorCode};
 use loom_pipe::Build;
 
-use super::{EvalResult, LabelResult, Progress, Sample, SampleDataset, SampleResult};
 use crate::Context;
 use loom_pipe::LayerResult;
 
@@ -89,7 +86,7 @@ impl ScoreLayer {
 
         // Build a lookup map for predictions by label name
         let mut prediction_map: HashMap<&str, f32> = HashMap::new();
-        
+
         for sentence_predictions in &predictions {
             for pred in sentence_predictions {
                 prediction_map.insert(
@@ -175,7 +172,7 @@ impl loom_pipe::Layer for ScoreLayer {
     }
 }
 
-/// Wrapper around ScoreResult that implements ScorerOutput.
+/// Wrapper around ScoreResult for evaluation output.
 pub struct ScoreLayerOutput(ScoreResult);
 
 impl ScoreLayerOutput {
@@ -187,39 +184,44 @@ impl ScoreLayerOutput {
     pub fn inner(&self) -> &ScoreResult {
         &self.0
     }
-}
 
-impl ScorerOutput for ScoreLayerOutput {
-    fn decision(&self) -> Decision {
-        // If we got a successful result, it's Accept
-        // (Reject happens when invoke returns an error)
+    /// The decision (Accept/Reject) for this scoring.
+    /// If we got a successful result, it's Accept.
+    /// (Reject happens when invoke returns an error)
+    pub fn decision(&self) -> Decision {
         Decision::Accept
     }
 
-    fn score(&self) -> f32 {
+    /// The overall score value.
+    pub fn score(&self) -> f32 {
         self.0.score
     }
 
-    fn labels(&self) -> Vec<(String, f32)> {
+    /// Labels with their raw (uncalibrated) scores.
+    pub fn labels(&self) -> Vec<(String, f32)> {
         self.0.raw_scores()
+    }
+
+    /// Labels that were detected (score > 0).
+    pub fn detected_labels(&self) -> Vec<String> {
+        self.labels()
+            .into_iter()
+            .filter(|(_, score)| *score > 0.0)
+            .map(|(name, _)| name)
+            .collect()
     }
 }
 
-impl Scorer for ScoreLayer {
-    type Output = ScoreLayerOutput;
-    type Error = Error;
-
-    fn score(&self, text: &str) -> Result<Self::Output, Self::Error> {
+impl ScoreLayer {
+    /// Score a single text.
+    pub fn score(&self, text: &str) -> loom_error::Result<ScoreLayerOutput> {
         let ctx = Context::new(text, ());
         self.invoke(ctx).map(|r| ScoreLayerOutput::new(r.output))
     }
-}
 
-impl BatchScorer for ScoreLayer {
-    type Output = ScoreLayerOutput;
-    type Error = Error;
-
-    fn score_batch(&self, texts: &[&str]) -> Result<Vec<Self::Output>, Self::Error> {
+    /// Score multiple texts in a single batch.
+    /// This is more efficient than scoring texts one at a time.
+    pub fn score_batch(&self, texts: &[&str]) -> loom_error::Result<Vec<ScoreLayerOutput>> {
         if texts.is_empty() {
             return Ok(vec![]);
         }
@@ -308,446 +310,6 @@ impl BatchScorer for ScoreLayer {
         }
 
         Ok(outputs)
-    }
-
-    fn batch_size(&self) -> usize {
-        16 // Optimal batch size for zero-shot classification
-    }
-}
-
-impl super::Evaluable for ScoreLayer {
-    type Output = ScoreLayerOutput;
-
-    fn eval_batch(&self, samples: &[&Sample]) -> loom_error::Result<Vec<Self::Output>> {
-        let texts: Vec<&str> = samples.iter().map(|s| s.text.as_str()).collect();
-        self.score_batch(&texts)
-    }
-
-    fn to_result(&self, sample: &Sample, output: Self::Output) -> SampleResult {
-        Self::eval_output(sample, output, None)
-    }
-}
-
-// =============================================================================
-// Dataset Evaluation Methods
-// =============================================================================
-
-impl ScoreLayer {
-    /// Evaluate a dataset using batch inference.
-    ///
-    /// This is the primary entry point for running evaluations. The scorer must be
-    /// wrapped in `Arc<Mutex<_>>` for thread-safe async execution.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let scorer = Arc::new(Mutex::new(score_config.build()?));
-    /// let result = ScoreLayer::eval(scorer, &dataset, 16, |p| println!("{}/{}", p.current, p.total)).await;
-    /// ```
-    pub async fn eval<F>(
-        scorer: Arc<Mutex<Self>>,
-        dataset: &SampleDataset,
-        batch_size: usize,
-        on_progress: F,
-    ) -> EvalResult
-    where
-        F: Fn(Progress) + Send + Sync + 'static,
-    {
-        let eval_start = std::time::Instant::now();
-        let total = dataset.samples.len();
-        let on_progress = Arc::new(on_progress);
-
-        // Collect all samples with their original indices
-        let indexed_samples: Vec<(usize, Sample)> =
-            dataset.samples.iter().cloned().enumerate().collect();
-
-        // Process samples in batches
-        let mut all_results: Vec<(Sample, SampleResult)> = Vec::with_capacity(total);
-        let mut processed = 0;
-
-        for chunk in indexed_samples.chunks(batch_size) {
-            let batch_samples: Vec<(usize, Sample)> = chunk.to_vec();
-            let texts: Vec<String> = batch_samples.iter().map(|(_, s)| s.text.clone()).collect();
-            let scorer = scorer.clone();
-            let on_progress = on_progress.clone();
-
-            // Process batch in spawn_blocking
-            let batch_outputs = tokio::task::spawn_blocking(move || {
-                let scorer = scorer.lock().expect("scorer lock poisoned");
-                let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-                scorer.score_batch(&text_refs)
-            })
-            .await
-            .expect("spawn_blocking failed");
-
-            // Evaluate each sample in the batch
-            match batch_outputs {
-                Ok(outputs) => {
-                    for ((_idx, sample), output) in
-                        batch_samples.into_iter().zip(outputs.into_iter())
-                    {
-                        let sample_result = Self::eval_output(&sample, output, None);
-
-                        processed += 1;
-                        on_progress(Progress {
-                            current: processed,
-                            total,
-                            sample_id: sample.id.clone(),
-                            correct: sample_result.correct,
-                        });
-
-                        all_results.push((sample, sample_result));
-                    }
-                }
-                Err(_) => {
-                    // On batch error, mark all samples as rejected
-                    for (_idx, sample) in batch_samples {
-                        let sample_result = SampleResult {
-                            id: sample.id.clone(),
-                            expected_decision: sample.expected_decision,
-                            actual_decision: Decision::Reject,
-                            correct: sample.expected_decision == Decision::Reject,
-                            score: 0.0,
-                            expected_labels: sample.expected_labels.clone(),
-                            detected_labels: vec![],
-                            elapsed_ms: None,
-                        };
-
-                        processed += 1;
-                        on_progress(Progress {
-                            current: processed,
-                            total,
-                            sample_id: sample.id.clone(),
-                            correct: sample_result.correct,
-                        });
-
-                        all_results.push((sample, sample_result));
-                    }
-                }
-            }
-        }
-
-        // Calculate timing metrics
-        let elapsed = eval_start.elapsed();
-        let elapsed_ms = elapsed.as_millis() as i64;
-        let throughput = if elapsed.as_secs_f32() > 0.0 {
-            total as f32 / elapsed.as_secs_f32()
-        } else {
-            0.0
-        };
-
-        Self::build_result(all_results, elapsed_ms, throughput)
-    }
-
-    /// Evaluate a dataset and capture raw scores.
-    ///
-    /// Returns both the evaluation result and a map of sample_id -> label -> raw_score.
-    /// This is useful for score extraction and Platt calibration.
-    pub async fn eval_with_scores<F>(
-        scorer: Arc<Mutex<Self>>,
-        dataset: &SampleDataset,
-        batch_size: usize,
-        on_progress: F,
-    ) -> (EvalResult, HashMap<String, HashMap<String, f32>>)
-    where
-        F: Fn(Progress) + Send + Sync + 'static,
-    {
-        let eval_start = std::time::Instant::now();
-        let total = dataset.samples.len();
-        let on_progress = Arc::new(on_progress);
-
-        let indexed_samples: Vec<(usize, Sample)> =
-            dataset.samples.iter().cloned().enumerate().collect();
-
-        let mut all_results: Vec<(Sample, SampleResult, HashMap<String, f32>)> =
-            Vec::with_capacity(total);
-        let mut processed = 0;
-
-        for chunk in indexed_samples.chunks(batch_size) {
-            let batch_samples: Vec<(usize, Sample)> = chunk.to_vec();
-            let texts: Vec<String> = batch_samples.iter().map(|(_, s)| s.text.clone()).collect();
-            let scorer = scorer.clone();
-            let on_progress = on_progress.clone();
-
-            let batch_outputs = tokio::task::spawn_blocking(move || {
-                let scorer = scorer.lock().expect("scorer lock poisoned");
-                let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-                scorer.score_batch(&text_refs)
-            })
-            .await
-            .expect("spawn_blocking failed");
-
-            match batch_outputs {
-                Ok(outputs) => {
-                    for ((_idx, sample), output) in
-                        batch_samples.into_iter().zip(outputs.into_iter())
-                    {
-                        let raw_scores: HashMap<String, f32> =
-                            output.labels().into_iter().collect();
-                        let sample_result = Self::eval_output(&sample, output, None);
-
-                        processed += 1;
-                        on_progress(Progress {
-                            current: processed,
-                            total,
-                            sample_id: sample.id.clone(),
-                            correct: sample_result.correct,
-                        });
-
-                        all_results.push((sample, sample_result, raw_scores));
-                    }
-                }
-                Err(_) => {
-                    for (_idx, sample) in batch_samples {
-                        let sample_result = SampleResult {
-                            id: sample.id.clone(),
-                            expected_decision: sample.expected_decision,
-                            actual_decision: Decision::Reject,
-                            correct: sample.expected_decision == Decision::Reject,
-                            score: 0.0,
-                            expected_labels: sample.expected_labels.clone(),
-                            detected_labels: vec![],
-                            elapsed_ms: None,
-                        };
-
-                        processed += 1;
-                        on_progress(Progress {
-                            current: processed,
-                            total,
-                            sample_id: sample.id.clone(),
-                            correct: sample_result.correct,
-                        });
-
-                        all_results.push((sample, sample_result, HashMap::new()));
-                    }
-                }
-            }
-        }
-
-        // Calculate timing metrics
-        let elapsed = eval_start.elapsed();
-        let elapsed_ms = elapsed.as_millis() as i64;
-        let throughput = if elapsed.as_secs_f32() > 0.0 {
-            total as f32 / elapsed.as_secs_f32()
-        } else {
-            0.0
-        };
-
-        Self::build_result_with_scores(all_results, elapsed_ms, throughput)
-    }
-
-    /// Export raw scores for Platt calibration training.
-    ///
-    /// This exports the raw model scores for each sample, which can be used
-    /// to train Platt calibration parameters.
-    pub async fn export_scores<F>(
-        scorer: Arc<Mutex<Self>>,
-        dataset: &SampleDataset,
-        batch_size: usize,
-        on_progress: F,
-    ) -> RawScoreExport
-    where
-        F: Fn(Progress) + Send + Sync + 'static,
-    {
-        let total = dataset.samples.len();
-        let on_progress = Arc::new(on_progress);
-
-        // Collect samples
-        let indexed_samples: Vec<(usize, Sample)> =
-            dataset.samples.iter().cloned().enumerate().collect();
-
-        // Process in batches
-        let mut all_scores: Vec<SampleScores> = Vec::with_capacity(total);
-        let mut processed = 0;
-
-        for chunk in indexed_samples.chunks(batch_size) {
-            let batch_samples: Vec<(usize, Sample)> = chunk.to_vec();
-            let texts: Vec<String> = batch_samples.iter().map(|(_, s)| s.text.clone()).collect();
-            let scorer = scorer.clone();
-            let on_progress = on_progress.clone();
-
-            // Process batch
-            let batch_outputs = tokio::task::spawn_blocking(move || {
-                let scorer = scorer.lock().expect("scorer lock poisoned");
-                let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-                scorer.score_batch(&text_refs)
-            })
-            .await
-            .expect("spawn_blocking failed");
-
-            match batch_outputs {
-                Ok(outputs) => {
-                    for ((_idx, sample), output) in
-                        batch_samples.into_iter().zip(outputs.into_iter())
-                    {
-                        let mut scores = HashMap::new();
-                        for (name, raw_score) in output.labels() {
-                            scores.insert(name, raw_score);
-                        }
-
-                        processed += 1;
-                        on_progress(Progress {
-                            current: processed,
-                            total,
-                            sample_id: sample.id.clone(),
-                            correct: true,
-                        });
-
-                        all_scores.push(SampleScores {
-                            id: sample.id.clone(),
-                            text: sample.text.clone(),
-                            scores,
-                            expected_labels: sample.expected_labels.clone(),
-                        });
-                    }
-                }
-                Err(_) => {
-                    // On batch error, push empty scores
-                    for (_idx, sample) in batch_samples {
-                        processed += 1;
-                        on_progress(Progress {
-                            current: processed,
-                            total,
-                            sample_id: sample.id.clone(),
-                            correct: true,
-                        });
-
-                        all_scores.push(SampleScores {
-                            id: sample.id.clone(),
-                            text: sample.text.clone(),
-                            scores: HashMap::new(),
-                            expected_labels: sample.expected_labels.clone(),
-                        });
-                    }
-                }
-            }
-        }
-
-        RawScoreExport {
-            samples: all_scores,
-        }
-    }
-
-    // === Private helper methods ===
-
-    /// Evaluate a batch output for a sample.
-    fn eval_output<O: ScorerOutput>(
-        sample: &Sample,
-        output: O,
-        elapsed_ms: Option<i64>,
-    ) -> SampleResult {
-        let detected_labels = output.detected_labels();
-        let actual_decision = output.decision();
-        let score = output.score();
-
-        SampleResult {
-            id: sample.id.clone(),
-            expected_decision: sample.expected_decision,
-            actual_decision,
-            correct: actual_decision == sample.expected_decision,
-            score,
-            expected_labels: sample.expected_labels.clone(),
-            detected_labels,
-            elapsed_ms,
-        }
-    }
-
-    /// Update per-label metrics based on sample results.
-    fn update_label_metrics(
-        per_label: &mut HashMap<String, LabelResult>,
-        sample: &Sample,
-        sample_result: &SampleResult,
-    ) {
-        let expected_set: HashSet<_> = sample.expected_labels.iter().collect();
-        let detected_set: HashSet<_> = sample_result.detected_labels.iter().collect();
-
-        for label in &sample.expected_labels {
-            let entry = per_label.entry(label.clone()).or_default();
-            entry.expected_count += 1;
-        }
-
-        for label in &sample_result.detected_labels {
-            let entry = per_label.entry(label.clone()).or_default();
-            entry.detected_count += 1;
-
-            if expected_set.contains(label) {
-                entry.true_positives += 1;
-            } else {
-                entry.false_positives += 1;
-            }
-        }
-
-        for label in &sample.expected_labels {
-            if !detected_set.contains(label) {
-                let entry = per_label.entry(label.clone()).or_default();
-                entry.false_negatives += 1;
-            }
-        }
-    }
-
-    /// Build a EvalResult from sample results.
-    fn build_result(
-        samples_and_results: Vec<(Sample, SampleResult)>,
-        elapsed_ms: i64,
-        throughput: f32,
-    ) -> EvalResult {
-        let mut result = EvalResult::new();
-        result.total = samples_and_results.len();
-        result.elapsed_ms = elapsed_ms;
-        result.throughput = throughput;
-
-        for (sample, sample_result) in samples_and_results {
-            if sample_result.correct {
-                result.correct += 1;
-            }
-
-            let cat_result = result
-                .per_category
-                .entry(sample.primary_category.clone())
-                .or_default();
-            cat_result.total += 1;
-            if sample_result.correct {
-                cat_result.correct += 1;
-            }
-
-            Self::update_label_metrics(&mut result.per_label, &sample, &sample_result);
-            result.sample_results.push(sample_result);
-        }
-
-        result
-    }
-
-    /// Build a EvalResult from sample results with raw scores.
-    fn build_result_with_scores(
-        samples_and_results: Vec<(Sample, SampleResult, HashMap<String, f32>)>,
-        elapsed_ms: i64,
-        throughput: f32,
-    ) -> (EvalResult, HashMap<String, HashMap<String, f32>>) {
-        let mut result = EvalResult::new();
-        let mut raw_scores_map: HashMap<String, HashMap<String, f32>> = HashMap::new();
-        result.total = samples_and_results.len();
-        result.elapsed_ms = elapsed_ms;
-        result.throughput = throughput;
-
-        for (sample, sample_result, raw_scores) in samples_and_results {
-            if sample_result.correct {
-                result.correct += 1;
-            }
-
-            let cat_result = result
-                .per_category
-                .entry(sample.primary_category.clone())
-                .or_default();
-            cat_result.total += 1;
-            if sample_result.correct {
-                cat_result.correct += 1;
-            }
-
-            Self::update_label_metrics(&mut result.per_label, &sample, &sample_result);
-            raw_scores_map.insert(sample_result.id.clone(), raw_scores);
-            result.sample_results.push(sample_result);
-        }
-
-        (result, raw_scores_map)
     }
 }
 
