@@ -1,18 +1,18 @@
 use crate::{Build, Operator, Pipe, Source};
 
 pub struct Map<Input, Output> {
-    handler: Box<dyn FnOnce(Input) -> Output>,
+    handler: Box<dyn FnOnce(Input) -> Output + Send>,
 }
 
 impl<Input, Output> Map<Input, Output> {
-    pub fn new<Handler: FnOnce(Input) -> Output + 'static>(handler: Handler) -> Self {
+    pub fn new<Handler: FnOnce(Input) -> Output + Send + 'static>(handler: Handler) -> Self {
         Self {
             handler: Box::new(handler),
         }
     }
 }
 
-impl<Input: 'static, Output: 'static> Operator<Input> for Map<Input, Output> {
+impl<Input: Send + 'static, Output: Send + 'static> Operator<Input> for Map<Input, Output> {
     type Output = Output;
 
     fn apply(self, src: Source<Input>) -> Source<Self::Output> {
@@ -21,9 +21,9 @@ impl<Input: 'static, Output: 'static> Operator<Input> for Map<Input, Output> {
 }
 
 pub trait MapPipe<T>: Pipe<T> + Sized {
-    fn map<O: 'static, F: FnOnce(T) -> O + 'static>(self, f: F) -> Source<O>
+    fn map<O: Send + 'static, F: FnOnce(T) -> O + Send + 'static>(self, f: F) -> Source<O>
     where
-        T: 'static,
+        T: Send + 'static,
     {
         self.pipe(Map::new(f))
     }

@@ -1,4 +1,4 @@
-# Phase 03: CLI Command Structs
+# Phase 02: CLI Command Structs
 
 **Status:** PENDING
 

@@ -1,18 +1,18 @@
 use crate::{Build, Operator, Pipe};
 
 pub struct Source<T> {
-    handler: Box<dyn FnOnce() -> T>,
+    handler: Box<dyn FnOnce() -> T + Send>,
 }
 
 impl<T> Source<T> {
-    pub fn new<Fn: FnOnce() -> T + 'static>(handler: Fn) -> Self {
+    pub fn new<Fn: FnOnce() -> T + Send + 'static>(handler: Fn) -> Self {
         Self {
             handler: Box::new(handler),
         }
     }
 }
 
-impl<T: 'static> From<T> for Source<T> {
+impl<T: Send + 'static> From<T> for Source<T> {
     fn from(value: T) -> Self {
         Self {
             handler: Box::new(|| value),

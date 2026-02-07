@@ -4,35 +4,30 @@
 
 | Phase | Description | Crate | Status |
 |-------|-------------|-------|--------|
-| [01-time-operators](01-time-operators.md) | timeout, debounce | pipe | PENDING |
-| [02-multi-file-merge](02-multi-file-merge.md) | Config file includes/refs | config | PENDING |
-| [03-cli-command-structs](03-cli-command-structs.md) | Command struct refactor | cli | PENDING |
+| [01-multi-file-merge](01-multi-file-merge.md) | Config file includes/refs | config | PENDING |
+| [02-cli-command-structs](02-cli-command-structs.md) | Command struct refactor | cli | PENDING |
 
 ## Priority Tiers
 
-### Tier 1: Pipe Operators - Advanced
-- **Phase 01**: Time operators - timeout, debounce
+### Tier 1: Config Enhancement
+- **Phase 01**: Multi-file config merge
 
-### Tier 2: Config Enhancement
-- **Phase 02**: Multi-file config merge
-
-### Tier 3: CLI Improvements
-- **Phase 03**: CLI command structs
+### Tier 2: CLI Improvements
+- **Phase 02**: CLI command structs
 
 ## Dependencies
 
 ```
-Phase 01 (Time) - Independent
+Phase 01 (Config) - Independent
 
-Phase 02 (Config) - Independent
-
-Phase 03 (CLI) - Independent
+Phase 02 (CLI) - Independent
 ```
 
 ## Completed Work Summary
 
 The following phases have been completed and their documentation archived:
 
+- **Time Operators** - timeout, delay
 - **Sequence Operators** - flatten, flat_map, chunk, window, concat
 - **Control Flow & Result Ops** - branch, and/or, retry, unwrap/expect operators
 - **Config Integration** - loom-config crate integrated with env var support

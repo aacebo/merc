@@ -23,6 +23,8 @@ pub use operators::{
     // Sequence
     Chunk,
     Concat,
+    // Time
+    Delay,
     // Result/Option
     Expect,
     FanOutBuilder,
@@ -51,6 +53,9 @@ pub use operators::{
     RouterBuilder,
     RouterPipe,
     SequencePipe,
+    TimePipe,
+    Timeout,
+    TimeoutError,
     TryMapPipe,
     Unwrap,
     UnwrapOr,
