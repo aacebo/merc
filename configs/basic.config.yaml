@@ -178,24 +178,6 @@ layers:
             threshold: 0.65
             platt_a: 1.0
             platt_b: 0.0
-          plan:
-            hypothesis: "The speaker is describing a plan, intention, or commitment to do something."
-            weight: 0.90
-            threshold: 0.65
-            platt_a: 1.0
-            platt_b: 0.0
-          goal:
-            hypothesis: "The speaker is describing a goal, objective, aspiration, or something they want to achieve."
-            weight: 0.90
-            threshold: 0.65
-            platt_a: 1.0
-            platt_b: 0.0
-          task:
-            hypothesis: "The speaker is describing something they need to do, remember, or a task to complete."
-            weight: 1.00
-            threshold: 0.65
-            platt_a: 1.0
-            platt_b: 0.0
 
       conversational:
         top_k: 2
@@ -258,5 +240,33 @@ layers:
             hypothesis: "The speaker is talking about the process of the conversation itself (format, brevity, style, structure, steps, or evaluation criteria)."
             weight: 0.60
             threshold: 0.75
+            platt_a: 1.0
+            platt_b: 0.0
+
+      task:
+        top_k: 2
+        labels:
+          task:
+            hypothesis: "The speaker is describing something they need to do, remember, or a task to complete."
+            weight: 1.00
+            threshold: 0.65
+            platt_a: 1.0
+            platt_b: 0.0
+          plan:
+            hypothesis: "The speaker is describing a plan, intention, or commitment to do something."
+            weight: 0.90
+            threshold: 0.65
+            platt_a: 1.0
+            platt_b: 0.0
+          goal:
+            hypothesis: "The speaker is describing a goal, objective, aspiration, or something they want to achieve."
+            weight: 0.90
+            threshold: 0.65
+            platt_a: 1.0
+            platt_b: 0.0
+          time:
+            hypothesis: "The speaker is mentioning a specific time, date, or deadline."
+            weight: 0.55
+            threshold: 0.70
             platt_a: 1.0
             platt_b: 0.0
